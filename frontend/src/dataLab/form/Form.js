@@ -92,15 +92,15 @@ class DataLabForm extends React.Component {
   exportField = () => {
     const { form } = this.props;
 
-    form.validateFields(["fields"], (err, payload) => {
+    form.validateFields(["name", "fields"], (err, payload) => {
       const hasNoFields = _.get(payload, "fields", []).length === 0;
       if (hasNoFields) this.setState({ error: true });
 
       if (err || hasNoFields) return;
 
       const downloadFile = async() => {
-        const { fields } = payload;
-        const fileName = "test.json";
+        const { name, fields } = payload;
+        const fileName = `${name}.json`;
         const blob = new Blob([JSON.stringify(fields)], {type: 'application/json'});
         const href = URL.createObjectURL(blob);
         const link = document.createElement('a');
