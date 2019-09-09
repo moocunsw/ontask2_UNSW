@@ -14,7 +14,9 @@ import {
   Alert,
   notification,
   Drawer,
-  Table
+  Table,
+  Upload,
+  message
 } from "antd";
 import _ from "lodash";
 import moment from "moment";
@@ -84,6 +86,33 @@ class DataLabForm extends React.Component {
         this.setState({ fieldKeys, fields });
         setFieldsValue({ fields });
       }
+    });
+  };
+
+  exportField = () => {
+    const { form } = this.props;
+
+    form.validateFields(["fields"], (err, payload) => {
+      const hasNoFields = _.get(payload, "fields", []).length === 0;
+      if (hasNoFields) this.setState({ error: true });
+
+      if (err || hasNoFields) return;
+
+      const downloadFile = async() => {
+        const { fields } = payload;
+        const fileName = "test.json";
+        const blob = new Blob([JSON.stringify(fields)], {type: 'application/json'});
+        const href = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = href;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+
+      downloadFile();
+
     });
   };
 
@@ -677,6 +706,57 @@ class DataLabForm extends React.Component {
               Preview
             </Button>
           </Tooltip>
+          <Button
+              style={{ marginLeft: 10 }}
+              icon="export"
+              onClick={() => this.exportField()}
+          >
+            Export
+          </Button>
+          <Upload
+            accept='.json'
+            showUploadList={false}
+            // onChange={(file, fileList, event) => this.importField(file, fileList, event)}
+            onChange={({ file }) => {
+              if (file.status === 'done') {
+                const reader = new FileReader();
+                reader.onloadend = (e) => {
+                  // TODO ERROR CHECK FILE CONTENTS
+                  const importFields = JSON.parse(e.target.result);
+                  const validateKeys = ["name", "type"];
+                  const validateTypes = ["text", "list", "number", "date", "checkbox", "checkbox-group"];
+                  const isValidImport = importFields instanceof Array && importFields.every(field => {
+                    return validateKeys.every(key => field.hasOwnProperty(key)) && validateTypes.includes(field.type)
+                  });
+                  if (isValidImport) {
+                    this.setState({
+                      fields: importFields,
+                      fieldKeys: importFields.map(() => _.uniqueId())
+                    })
+                    message.success(`${file.name} file uploaded successfully`);
+                  }
+                  else {
+                    message.error(`${file.name} could not be imported. Please check its content structure`);
+                  }
+                };
+                reader.readAsText(file.originFileObj);
+              } else if (file.status === 'error') {
+                message.error(`${file.name} file upload failed.`);
+              }
+            }}
+            customRequest={({ file, onSuccess }) => {
+              setTimeout(() => {
+                onSuccess("ok");
+              }, 0);
+            }}
+          >
+            <Button
+                style={{ marginLeft: 10 }}
+                icon="upload"
+            >
+              Import
+            </Button>
+          </Upload>
         </div>
 
         <List
