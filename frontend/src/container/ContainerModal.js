@@ -3,26 +3,11 @@ import { Modal, Form, Input, Select, Alert, notification } from "antd";
 
 import apiRequest from "../shared/apiRequest";
 import formItemLayout from "../shared/FormItemLayout";
+import terms from "../shared/terms";
 
 const FormItem = Form.Item;
 const Option = Select.Option;
 const { TextArea } = Input;
-
-// TODO: Generalise
-const sampleTerms = [
-  {
-    "code": 5196,
-    "name": "2019 Term 2"
-  },
-  {
-    "code": 5197,
-    "name": "2019 Semester 2 Canberra"
-  },
-  {
-    "code": 5199,
-    "name": "2019 Term 3"
-  }
-]
 
 class ContainerModal extends React.Component {
   state = { loading: null, error: null };
@@ -96,10 +81,11 @@ class ContainerModal extends React.Component {
           <FormItem {...formItemLayout} label="Term">
             {getFieldDecorator("term", {
               initialValue: selected ? selected.term : null,
+              rules: [{ required: true, message: "Term is required" }]
             })(
               <Select>
                 {
-                  sampleTerms.map((term, i) => (
+                  terms.map((term, i) => (
                     <Option value={term.code} key={i}>{term.name}</Option>
                   ))
                 }

@@ -26,10 +26,12 @@ import ActionTab from "./tabs/ActionTab";
 import ContainerContext from "./ContainerContext";
 
 import apiRequest from "../shared/apiRequest";
+import terms, { defaultTerms } from "../shared/terms";
 
 import "./Container.css";
 
 const { Content } = Layout;
+const { Option } = Select;
 const Panel = Collapse.Panel;
 
 class Dashboard extends React.Component {
@@ -39,7 +41,8 @@ class Dashboard extends React.Component {
     sharing: { visible: false, selected: null },
     lti: { visible: false },
     deleting: {},
-    formPermissions: {}
+    formPermissions: {},
+    termFilter: defaultTerms
   };
 
   fetchDashboard = () => {
@@ -360,18 +363,44 @@ class Dashboard extends React.Component {
     );
   };
 
+  // handleTermFilter = (value) => {
+  //   if (value === 'select-all') this.setState({ terms });
+  //   else this.setState( value );
+  // };
+
   ContainerList = () => {
     const { history } = this.props;
-    const { accordionKey, tabKey, dashboard } = this.state;
+    const { accordionKey, tabKey, dashboard, termFilter } = this.state;
+
+    const filterDashboard = dashboard.filter(container => termFilter.includes(container.term));
 
     return (
       <div className="container_list">
+        <Select
+          allowClear
+          mode="multiple"
+          style={{ width: '350px', marginBottom: '20px' }} // TODO: Potentially need max height if too many courses
+          placeholder="Select filters"
+          value={termFilter}
+          onChange={(value) => {
+            console.log(value)
+            if (value.includes('select-all')) this.setState({ termFilter: terms.map(term => term.code) });
+            else this.setState({ termFilter: value });
+          }}
+        >
+          <Option style={{ textAlign: 'center', fontWeight: 'bold' }} value="select-all">Select All</Option>
+          {
+            terms.map((term, i) => (
+              <Option value={term.code} key={i}>{term.name}</Option>
+            ))
+          }
+        </Select>
         <Collapse
           accordion
           onChange={accordionKey => this.setDefaultKeys(accordionKey)}
           activeKey={accordionKey}
         >
-          {dashboard.map((container, i) => (
+          {filterDashboard.map((container, i) => (
             <Panel
               header={this.Header(container)}
               key={container.id}
@@ -578,6 +607,7 @@ class Dashboard extends React.Component {
                         sessionStorage.getItem("group")
                       ) && (
                         <Button
+                          style={{ minWidth: '170px' }}
                           onClick={() => this.openModal({ type: "container" })}
                           type="primary"
                           icon="plus"
@@ -593,7 +623,7 @@ class Dashboard extends React.Component {
                           type="primary"
                           icon="setting"
                           size="large"
-                          style={{ marginLeft: "10px" }}
+                          style={{ minWidth: '170px', marginLeft: "10px" }}
                         >
                           Administration
                         </Button>
