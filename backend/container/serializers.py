@@ -5,11 +5,17 @@ from rest_framework_mongoengine.serializers import (
 )
 from mongoengine.queryset.visitor import Q
 
-from .models import Container
+from .models import Container, Term
 from datasource.models import Datasource
 from datalab.models import Datalab, Module, DatasourceModule
 from workflow.models import Workflow
 from form.models import Form
+
+
+class TermSerializer(DocumentSerializer):
+    class Meta:
+        model = Term
+        fields = "__all__"
 
 
 class ContainerSerializer(DocumentSerializer):

@@ -5,20 +5,25 @@ from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError, NotFound, PermissionDenied
 from rest_framework.status import HTTP_201_CREATED, HTTP_200_OK
 
-from .serializers import ContainerSerializer, DashboardSerializer
-from .models import Container
+from .serializers import ContainerSerializer, TermSerializer, DashboardSerializer
+from .models import Container, Term
 
 from form.models import Form
 from datalab.models import Datalab
 from accounts.permissions import CanCreateObjects
+
+from datetime import datetime as dt
 
 import logging
 
 logger = logging.getLogger("ontask")
 
 
-@api_view(["GET"])
+@api_view(["POST"])
 def Dashboard(request):
+    if len(request.data) == 0:
+        return Response([])
+
     related_containers = set()
 
     access_context = {}
@@ -33,13 +38,15 @@ def Dashboard(request):
         context_key = obj[1]
         access_context[f"accessible_{context_key}"] = accessible_objects
 
+    filterIds = [term["id"] for term in request.data]
     if request.user.is_superuser:
-        containers = Container.objects.all()
+        containers = Container.objects.filter(term__in=filterIds).order_by("code")
     else:
         containers = Container.objects.filter(
             Q(owner=request.user.email)
             | Q(sharing__contains=request.user.email)
             | Q(id__in=related_containers)
+            | Q(term__in=filterIds)
         ).order_by("code")
 
     response = []
@@ -56,6 +63,29 @@ def Dashboard(request):
     return Response(response)
 
 
+@api_view(["GET"])
+def Terms(request):
+    """All Terms and Current Terms in Semester using DateTime.now()"""
+
+
+
+    # All Terms
+    terms = Term.objects.all().order_by("-term_id")
+    allTerms = [TermSerializer(term).data for term in terms]
+
+    # Current Terms
+    terms = Term.objects.filter(Q(start__lte=dt.utcnow()) & Q(end__gte=dt.utcnow())).order_by("-term_id")
+    currentTerms = [TermSerializer(term).data for term in terms]
+
+    response = {
+        "terms": allTerms,
+        "currentTerms": currentTerms
+    }
+
+    return Response(response)
+
+
+# TODO: Fix ObjectID not serializable error message
 @api_view(["POST"])
 @permission_classes([CanCreateObjects])
 def CreateContainer(request):
@@ -107,7 +137,6 @@ class DetailContainer(APIView):
                 id__ne=container.id, owner=request.user.email, code=request.data["code"]
             ).first():
                 raise ValidationError("A container with this code already exists")
-
         serializer = ContainerSerializer(container, data=request.data, partial=True)
         serializer.is_valid()
         serializer.save()

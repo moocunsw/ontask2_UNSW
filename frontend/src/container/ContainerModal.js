@@ -3,7 +3,6 @@ import { Modal, Form, Input, Select, Alert, notification } from "antd";
 
 import apiRequest from "../shared/apiRequest";
 import formItemLayout from "../shared/FormItemLayout";
-import terms from "../shared/terms";
 
 const FormItem = Form.Item;
 const Option = Select.Option;
@@ -56,7 +55,7 @@ class ContainerModal extends React.Component {
   };
 
   render() {
-    const { visible, selected, form } = this.props;
+    const { visible, selected, form, terms } = this.props;
     const { loading, error } = this.state;
 
     const { getFieldDecorator } = form;
@@ -86,7 +85,7 @@ class ContainerModal extends React.Component {
               <Select>
                 {
                   terms.map((term, i) => (
-                    <Option value={term.code} key={i}>{term.name}</Option>
+                    <Option value={term.id} key={i}>{term.name}</Option>
                   ))
                 }
               </Select>

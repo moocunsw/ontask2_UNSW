@@ -26,7 +26,6 @@ import ActionTab from "./tabs/ActionTab";
 import ContainerContext from "./ContainerContext";
 
 import apiRequest from "../shared/apiRequest";
-import terms, { defaultTerms } from "../shared/terms";
 
 import "./Container.css";
 
@@ -42,14 +41,18 @@ class Dashboard extends React.Component {
     lti: { visible: false },
     deleting: {},
     formPermissions: {},
-    termFilter: defaultTerms
+    terms: [],
+    currentTerms: []
   };
 
   fetchDashboard = () => {
     this.setState({ fetching: true });
 
+    const payload = this.state.currentTerms;
+
     apiRequest(`/dashboard/`, {
-      method: "GET",
+      method: "POST",
+      payload,
       onSuccess: dashboard => {
         let accordionKey = sessionStorage.getItem("accordionKey");
         let tabKey = sessionStorage.getItem("tabKey");
@@ -73,8 +76,31 @@ class Dashboard extends React.Component {
     });
   };
 
+
+  fetchTerms = () => {
+    this.setState({ fetching: true });
+
+    apiRequest(`/terms/`, {
+      method: "GET",
+      onSuccess: terms => {
+        // terms, currentTerms
+        this.setState({
+          fetching: false,
+          ...terms
+        }, () => {this.fetchDashboard()});
+      },
+      onError: () => {
+        notification["error"]({
+          message: "Failed to fetch terms"
+        });
+        this.setState({ fetching: false });
+      }
+    })
+  };
+
   componentDidMount() {
-    this.fetchDashboard();
+    this.fetchTerms();
+    // this.fetchDashboard();
   }
 
   componentDidUpdate(prevProps) {
@@ -363,44 +389,18 @@ class Dashboard extends React.Component {
     );
   };
 
-  // handleTermFilter = (value) => {
-  //   if (value === 'select-all') this.setState({ terms });
-  //   else this.setState( value );
-  // };
-
   ContainerList = () => {
     const { history } = this.props;
-    const { accordionKey, tabKey, dashboard, termFilter } = this.state;
-
-    const filterDashboard = dashboard.filter(container => termFilter.includes(container.term));
+    const { accordionKey, tabKey, dashboard } = this.state;
 
     return (
       <div className="container_list">
-        <Select
-          allowClear
-          mode="multiple"
-          style={{ width: '350px', marginBottom: '20px' }} // TODO: Potentially need max height if too many courses
-          placeholder="Select filters"
-          value={termFilter}
-          onChange={(value) => {
-            console.log(value)
-            if (value.includes('select-all')) this.setState({ termFilter: terms.map(term => term.code) });
-            else this.setState({ termFilter: value });
-          }}
-        >
-          <Option style={{ textAlign: 'center', fontWeight: 'bold' }} value="select-all">Select All</Option>
-          {
-            terms.map((term, i) => (
-              <Option value={term.code} key={i}>{term.name}</Option>
-            ))
-          }
-        </Select>
         <Collapse
           accordion
           onChange={accordionKey => this.setDefaultKeys(accordionKey)}
           activeKey={accordionKey}
         >
-          {filterDashboard.map((container, i) => (
+          {dashboard.map((container, i) => (
             <Panel
               header={this.Header(container)}
               key={container.id}
@@ -584,8 +584,12 @@ class Dashboard extends React.Component {
       container,
       sharing,
       lti,
-      accessList
+      accessList,
+      terms,
+      currentTerms
     } = this.state;
+
+    const termIds = currentTerms.length === 0 ? [] : currentTerms.map(term => term.id);
 
     return (
       <ContainerContext.Provider
@@ -639,6 +643,7 @@ class Dashboard extends React.Component {
                         sessionStorage.setItem("tabKey", "datasources");
                       }}
                       closeModal={() => this.closeModal("container")}
+                      terms={terms}
                     />
 
                     <ContainerShare
@@ -691,6 +696,30 @@ class Dashboard extends React.Component {
                       }
                     />
 
+                    <Select
+                      mode="multiple"
+                      style={{ width: '350px', marginBottom: '20px' }} // TODO: Potentially need max height if too many courses
+                      placeholder="Select filters"
+                      value={termIds}
+                      onChange={(value) => {
+                        let newCurrentTerms = this.state.currentTerms;
+                        if (value.includes('select-all')) newCurrentTerms = terms;
+                        else if (value.includes('select-none')) newCurrentTerms = [];
+                        else newCurrentTerms = terms.filter(term => value.includes(term.id));
+                        this.setState({ currentTerms: newCurrentTerms }, () => {
+                          this.fetchDashboard();
+                        });
+                      }}
+                    >
+                      <Option style={{ textAlign: 'center', fontWeight: 'bold' }} value="select-all">Select All</Option>
+                      <Option style={{ textAlign: 'center', fontWeight: 'bold' }} value="select-none">Select None</Option>
+                      {
+                        terms.map((term, i) => (
+                          <Option value={term.id} key={i}>{term.name}</Option>
+                        ))
+                      }
+                    </Select>
+
                     {dashboard.length > 0 ? (
                       this.ContainerList()
                     ) : sessionStorage.getItem("group") === "user" ? (
@@ -700,7 +729,7 @@ class Dashboard extends React.Component {
                     ) : (
                       <h2>
                         <Icon type="info-circle-o" className="info_icon" />
-                        Get started by creating your first container.
+                        Get started by creating your first container or selecting a filter.
                       </h2>
                     )}
                   </div>
