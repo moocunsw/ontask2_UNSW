@@ -77,7 +77,7 @@ class Dashboard extends React.Component {
   };
 
 
-  fetchTerms = () => {
+  fetchTermsDashboard = () => {
     this.setState({ fetching: true });
 
     apiRequest(`/terms/`, {
@@ -99,7 +99,16 @@ class Dashboard extends React.Component {
   };
 
   componentDidMount() {
-    this.fetchTerms();
+    const termsInfo = localStorage.getItem('termsInfo');
+    if (termsInfo !== null) {
+      this.setState(JSON.parse(termsInfo), () => { this.fetchDashboard() });
+    }
+    else {
+      this.fetchTermsDashboard();
+    }
+    // localStorage.setItem('currentTerms', JSON.stringify(newCurrentTerms));
+
+    // this.fetchTerms();
     // this.fetchDashboard();
   }
 
@@ -702,11 +711,13 @@ class Dashboard extends React.Component {
                       placeholder="Select filters"
                       value={termIds}
                       onChange={(value) => {
-                        let newCurrentTerms = this.state.currentTerms;
+                        const { terms } = this.state;
+                        let newCurrentTerms = null;
                         if (value.includes('select-all')) newCurrentTerms = terms;
                         else if (value.includes('select-none')) newCurrentTerms = [];
                         else newCurrentTerms = terms.filter(term => value.includes(term.id));
                         this.setState({ currentTerms: newCurrentTerms }, () => {
+                          localStorage.setItem('termsInfo', JSON.stringify({ terms: terms, currentTerms: newCurrentTerms }));
                           this.fetchDashboard();
                         });
                       }}
