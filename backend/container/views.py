@@ -67,8 +67,6 @@ def Dashboard(request):
 def Terms(request):
     """All Terms and Current Terms in Semester using DateTime.now()"""
 
-
-
     # All Terms
     terms = Term.objects.all().order_by("-term_id")
     allTerms = [TermSerializer(term).data for term in terms]
@@ -85,7 +83,6 @@ def Terms(request):
     return Response(response)
 
 
-# TODO: Fix ObjectID not serializable error message
 @api_view(["POST"])
 @permission_classes([CanCreateObjects])
 def CreateContainer(request):

@@ -30,23 +30,25 @@ import apiRequest from "../shared/apiRequest";
 import "./Container.css";
 
 const { Content } = Layout;
-const { Option } = Select;
+const { Option, OptGroup } = Select;
 const Panel = Collapse.Panel;
 
 class Dashboard extends React.Component {
   state = {
     dashboard: [],
+    loadingDashboard: true,
     container: { visible: false, selected: null },
     sharing: { visible: false, selected: null },
     lti: { visible: false },
     deleting: {},
     formPermissions: {},
     terms: [],
-    currentTerms: []
+    currentTerms: [],
+    loadingTerms: true
   };
 
   fetchDashboard = () => {
-    this.setState({ fetching: true });
+    this.setState({ loadingDashboard: true });
 
     const payload = this.state.currentTerms;
 
@@ -62,7 +64,7 @@ class Dashboard extends React.Component {
 
         this.setState({
           dashboard,
-          fetching: false,
+          loadingDashboard: false,
           accordionKey,
           tabKey
         });
@@ -71,21 +73,23 @@ class Dashboard extends React.Component {
         notification["error"]({
           message: "Failed to fetch dashboard"
         });
-        this.setState({ fetching: false });
+        this.setState({ loadingDashboard: false });
       }
     });
   };
 
 
   fetchTermsDashboard = () => {
-    this.setState({ fetching: true });
+    this.setState({ loadingTerms: true });
 
     apiRequest(`/terms/`, {
       method: "GET",
       onSuccess: terms => {
+        const storageTerms = localStorage.getItem('currentTerms');
+        if (storageTerms) terms.currentTerms = JSON.parse(storageTerms);
         // terms, currentTerms
         this.setState({
-          fetching: false,
+          loadingTerms: false,
           ...terms
         }, () => {this.fetchDashboard()});
       },
@@ -93,19 +97,20 @@ class Dashboard extends React.Component {
         notification["error"]({
           message: "Failed to fetch terms"
         });
-        this.setState({ fetching: false });
+        this.setState({ loadingTerms: false });
       }
     })
   };
 
   componentDidMount() {
-    const termsInfo = localStorage.getItem('termsInfo');
-    if (termsInfo !== null) {
-      this.setState(JSON.parse(termsInfo), () => { this.fetchDashboard() });
-    }
-    else {
-      this.fetchTermsDashboard();
-    }
+    this.fetchTermsDashboard();
+    // const currentTerms = localStorage.getItem('currentTerms');
+    // if (currentTerms !== null) {
+    //   this.setState(JSON.parse(termsInfo), () => { this.fetchDashboard() });
+    // }
+    // else {
+    //   this.fetchTermsDashboard();
+    // }
     // localStorage.setItem('currentTerms', JSON.stringify(newCurrentTerms));
 
     // this.fetchTerms();
@@ -588,14 +593,15 @@ class Dashboard extends React.Component {
   render() {
     const { history } = this.props;
     const {
-      fetching,
+      loadingDashboard,
       dashboard,
       container,
       sharing,
       lti,
       accessList,
       terms,
-      currentTerms
+      currentTerms,
+      loadingTerms
     } = this.state;
 
     const termIds = currentTerms.length === 0 ? [] : currentTerms.map(term => term.id);
@@ -611,7 +617,7 @@ class Dashboard extends React.Component {
           <Content className="wrapper">
             <Layout className="layout">
               <Content className="content">
-                {fetching ? (
+                {loadingTerms ? (
                   <Spin size="large" />
                 ) : (
                   <div>
@@ -643,6 +649,42 @@ class Dashboard extends React.Component {
                       )}
                     </div>
 
+                    <Select
+                      mode="multiple"
+                      style={{ width: '350px', marginBottom: '20px' }}
+                      placeholder="Select filters"
+                      value={termIds}
+                      onChange={(value) => {
+                        const { terms } = this.state;
+                        let newCurrentTerms = null;
+                        if (value.includes('_all')) newCurrentTerms = terms;
+                        else if (value.includes('_none')) newCurrentTerms = [];
+                        else newCurrentTerms = terms.filter(term => value.includes(term.id));
+                        this.setState({ currentTerms: newCurrentTerms }, () => {
+                          localStorage.setItem('currentTerms', JSON.stringify(newCurrentTerms));
+                          this.fetchDashboard();
+                        });
+                      }}
+                    >
+                      <OptGroup label="Utilities">
+                        <Option value="_all">Select all</Option>
+                        <Option value="_none">Reset</Option>
+                      </OptGroup>
+                      <OptGroup label="Terms">
+                        {
+                          terms.map((term, i) => (
+                            <Option value={term.id} key={i}>{term.name}</Option>
+                          ))
+                        }
+                      </OptGroup>
+                    </Select>
+                  </div>
+                )}
+
+                {loadingDashboard ? (
+                  <Spin size="large" />
+                ) : (
+                  <div>
                     <ContainerModal
                       {...container}
                       fetchDashboard={this.fetchDashboard}
@@ -704,33 +746,6 @@ class Dashboard extends React.Component {
                         this.setState({ accessList: { visible: false } })
                       }
                     />
-
-                    <Select
-                      mode="multiple"
-                      style={{ width: '350px', marginBottom: '20px' }} // TODO: Potentially need max height if too many courses
-                      placeholder="Select filters"
-                      value={termIds}
-                      onChange={(value) => {
-                        const { terms } = this.state;
-                        let newCurrentTerms = null;
-                        if (value.includes('select-all')) newCurrentTerms = terms;
-                        else if (value.includes('select-none')) newCurrentTerms = [];
-                        else newCurrentTerms = terms.filter(term => value.includes(term.id));
-                        this.setState({ currentTerms: newCurrentTerms }, () => {
-                          localStorage.setItem('termsInfo', JSON.stringify({ terms: terms, currentTerms: newCurrentTerms }));
-                          this.fetchDashboard();
-                        });
-                      }}
-                    >
-                      <Option style={{ textAlign: 'center', fontWeight: 'bold' }} value="select-all">Select All</Option>
-                      <Option style={{ textAlign: 'center', fontWeight: 'bold' }} value="select-none">Select None</Option>
-                      {
-                        terms.map((term, i) => (
-                          <Option value={term.id} key={i}>{term.name}</Option>
-                        ))
-                      }
-                    </Select>
-
                     {dashboard.length > 0 ? (
                       this.ContainerList()
                     ) : sessionStorage.getItem("group") === "user" ? (
