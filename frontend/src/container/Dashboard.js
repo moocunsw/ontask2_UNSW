@@ -681,7 +681,7 @@ class Dashboard extends React.Component {
                   </div>
                 )}
 
-                {loadingDashboard ? (
+                {!loadingTerms && (loadingDashboard ? (
                   <Spin size="large" />
                 ) : (
                   <div>
@@ -759,7 +759,7 @@ class Dashboard extends React.Component {
                       </h2>
                     )}
                   </div>
-                )}
+                ))}
               </Content>
             </Layout>
           </Content>
