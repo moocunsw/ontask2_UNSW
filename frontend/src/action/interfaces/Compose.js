@@ -1,13 +1,13 @@
 import React from "react";
 
-import { Button, Divider, Table, notification } from "antd";
+import { Button, Divider, Table, Tooltip, notification } from "antd";
 
 import _ from "lodash";
 import Draggable from "react-draggable";
 
 import PreviewModal from "../modals/PreviewModal";
 
-import ContentEditor from "./ContentEditor";
+import ContentEditor from "./ContentEditor/ContentEditor";
 import QueryBuilder from "./QueryBuilder";
 
 import "material-design-icons/iconfont/material-icons.css";
@@ -217,50 +217,90 @@ class Compose extends React.Component {
           ? action.rules.map((rule, ruleIndex) => (
               <Draggable
                 key={ruleIndex}
+                cancel="Button"
                 position={{ x: 0, y: 0 }}
                 onDrag={mouseEvent => {
                   this.setState({
-                    contentEditor: { mouseEvent, ruleIndex: null }
+                    contentEditor: { mouseEvent, ruleIndex: null, isRuleClick: false }
                   });
                 }}
                 onStop={e => {
                   // Rule was dragged
                   if (contentEditor && contentEditor.mouseEvent) {
                     this.setState({
-                      contentEditor: { mouseEvent: null, ruleIndex }
+                      contentEditor: { mouseEvent: null, ruleIndex, isRuleClick: false }
                     });
                     // Rule was clicked
-                  } else {
-                    this.setState({
-                      querybuilder: {
-                        visible: true,
-                        type: "rule",
-                        selected: rule,
-                        onSubmit: ({ rule, method, onSuccess, onError }) =>
-                          this.updateRule({
-                            rule,
-                            ruleIndex,
-                            method,
-                            onSuccess,
-                            onError
-                          })
-                      }
-                    });
                   }
+                  // else {
+                  //   this.setState({
+                  //     querybuilder: {
+                  //       visible: true,
+                  //       type: "rule",
+                  //       selected: rule,
+                  //       onSubmit: ({ rule, method, onSuccess, onError }) =>
+                  //         this.updateRule({
+                  //           rule,
+                  //           ruleIndex,
+                  //           method,
+                  //           onSuccess,
+                  //           onError
+                  //         })
+                  //     }
+                  //   });
+                  // }
                 }}
               >
-                <Button style={{ marginRight: 5 }}>
-                  <span
-                    style={{
-                      width: 9,
-                      height: 9,
-                      background: colours[ruleIndex],
-                      marginRight: 5,
-                      display: "inline-block"
-                    }}
-                  />
-                  {rule.name}
-                </Button>
+                <div
+                  style={{
+                    display: "inline-block",
+                    marginRight: 5,
+                    textAlign: "center",
+                    border: "1px solid #d9d9d9",
+                    borderRadius: "4px",
+                    padding: "1px 7px 2px",
+                    cursor: "move"
+                  }}
+                >
+                  <div>
+                    <span
+                      style={{
+                        width: 9,
+                        height: 9,
+                        background: colours[ruleIndex],
+                        marginRight: 5,
+                        display: "inline-block"
+                      }}
+                    />
+                    {rule.name}
+                  </div>
+                  <div>
+                    <Tooltip title="Edit rule">
+                      <Button
+                        icon="edit"
+                        size="small"
+                        onClick={(e) => {
+                          this.setState({
+                            querybuilder: {
+                              visible: true,
+                              type: "rule",
+                              selected: rule,
+                              onSubmit: ({ rule, method, onSuccess, onError }) =>
+                                this.updateRule({rule, ruleIndex, method, onSuccess, onError})
+                            }
+                          });
+                        }}
+                      />
+                    </Tooltip>
+                    <Tooltip title="Add rule to content editor">
+                      <Button
+                        size="small"
+                        icon="plus"
+                        onClick={(e) => {this.newContentEditor.handleRuleClick(ruleIndex, action.rules)}}
+                      />
+                    </Tooltip>
+                  </div>
+                </div>
               </Draggable>
             ))
           : "No rules have been added yet."}
@@ -270,9 +310,10 @@ class Compose extends React.Component {
         <h3>Content</h3>
 
         <ContentEditor
+          ref={newContentEditor => this.newContentEditor = newContentEditor}
           key={contentEditorKey} // Used to force a re-render after updating rules
           {...contentEditor}
-          blockMap={_.get(action, "content.blockMap")}
+          html={_.get(action, "content")}
           rules={action.rules}
           types={action.options.types}
           order={action.data.order}

@@ -1,7 +1,7 @@
 import re
 from dateutil import parser
 import time
-
+from collections import defaultdict
 
 def transform(value, param_type):
     try:
@@ -56,9 +56,9 @@ def did_pass_test(test, value, param_type):
     except:
         return False
 
-
-def populate_field(match, item, order):
-    field = match.group(1)
+def replace_attribute(match, item, order):
+    """Generates new HTML replacement string for attribute with the attribute value and mark styles"""
+    field = match.group(2)
     value = item.get(field)
 
     for item in order:
@@ -84,12 +84,78 @@ def populate_field(match, item, order):
     elif not isinstance(value, str):
         value = str(value)
 
-    return value
+    return match.group(1) + value + match.group(3)
 
-
-def parse_content_line(line, item, order):
+def parse_attribute(html, item, order):
+    """
+    Parse <attribute> ... </attribute> in html string based on student.
+    Only checks for
+        - bold,italic,underline,code,span inlines and may need to be modified
+    """
     return re.sub(
-        r"<attribute>(.*?)</attribute>",
-        lambda match: populate_field(match, item, order),
-        line,
+        r"<attribute>((?:<(?:strong|em|u|pre|code|span.*?)>)*)(.*?)((?:</(?:strong|em|u|pre|code|span)>)*)</attribute>",
+        lambda match: replace_attribute(match, item, order),
+        html
     )
+
+def generate_condition_tag_locations(html):
+    """Generates a dictionary of lists representing a list of (start,stop) indices for each condition in the html string
+
+    Arguments:
+        html {string} -- Serialized HTML String of content editor
+
+    Returns:
+        [dict{list((start,stop))}] -- Dictionary of condition tag locations
+    """
+    tagPattern = r"<condition conditionid=\"(.*?)\" index=\"\d+\"(?: label=\"else\")?>|<\/condition>"
+    conditionTagLocations = defaultdict(list)
+    stack = []
+    for match in re.finditer(tagPattern, html):
+        if match.group(1) is not None:
+            # Match Opening Tag
+            stack.append((match.start(0),match.group(1))) # (Start Index,Condition ID)
+        else:
+            start, cid = stack.pop()
+            conditionTagLocations[cid].append((start,match.end(0)))
+            # Match Closing Tag
+    return conditionTagLocations
+
+def delete_html_by_indexes(html,indexes):
+    """Deletes from HTML string based on a list of indexes.
+
+    Arguments:
+        html {string} -- Serialized HTML String of content editor
+        indexes {list(start,stop)} -- List of slices to remove from string
+    """
+
+    # Sort by stop index in descending order to allow filtering & deletion to work
+    indexes = sorted(indexes, key=lambda slice:slice[1], reverse=True)
+
+    # Filter out "redundant index pairs" assuming clean HTML structure
+    cleanIndexes = []
+    for currStart,currStop in indexes:
+        add = True
+        for (start,stop) in cleanIndexes:
+            # Checks for "nested" html structure
+            if start < currStart < currStop < stop:
+                add = False
+        if add:
+            cleanIndexes.append((currStart,currStop))
+
+    # Perform Deletion
+    for start,stop in cleanIndexes:
+        html = html[:start] + html[stop:]
+
+    return html
+
+def replace_tags(html, old, new):
+    """Replaces all instances of <old ...> and </old> with <new ...> </new>
+
+    Arguments:
+        html {string} -- Serialized HTML String of content editor
+
+    Returns:
+        string -- New HTML String
+    """
+    tagPattern = r"(<\s*\/?\s*)" + old + r"(\s*([^>]*)?\s*>)"
+    return re.sub(tagPattern, r"\g<1>" + new + r"\g<2>", html)

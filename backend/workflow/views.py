@@ -23,7 +23,6 @@ from .models import (
     Email,
     Rule,
     Filter,
-    Content,
     Schedule,
 )
 from .permissions import WorkflowPermissions
@@ -186,8 +185,7 @@ class WorkflowViewSet(viewsets.ModelViewSet):
             populated_content = action.populate_content()
             return Response(populated_content)
         else:
-            content = request.data.get("content")
-            content = Content(**content)
+            content = request.data.get("content")["html"]
 
             # User-provided content is being previewed
             if request.method == "POST":
