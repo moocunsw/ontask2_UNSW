@@ -224,29 +224,32 @@ class Field extends React.Component {
     const { field, onSave } = this.props;
     const { value } = this.state;
 
+    const fieldColumns = field.columns &&
+      field.columns.map(column => (
+        <div
+          className={value && value[column] ? "active" : "inactive"}
+          key={column}
+          onClick={() => {
+            const newValue = !value[column];
+
+            this.setState({
+              value: { ...value, [column]: newValue }
+            });
+
+            if (!onSave) return;
+
+            if (this.props.value[column] !== newValue) {
+              onSave(newValue, column);
+            }
+          }}
+        >
+          {column}
+        </div>
+      ));
+
     return (
       <div className="checkbox-group">
-        {field.columns.map(column => (
-          <div
-            className={value && value[column] ? "active" : "inactive"}
-            key={column}
-            onClick={() => {
-              const newValue = !value[column];
-
-              this.setState({
-                value: { ...value, [column]: newValue }
-              });
-
-              if (!onSave) return;
-
-              if (this.props.value[column] !== newValue) {
-                onSave(newValue, column);
-              }
-            }}
-          >
-            {column}
-          </div>
-        ))}
+        {fieldColumns}
       </div>
     );
   };
