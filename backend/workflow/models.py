@@ -315,15 +315,13 @@ class Workflow(Document):
         if not self.content:
             return
 
-        blocks = self.content["blockMap"]["document"]["nodes"]
-        new_blocks = list(
-            filter(
-                lambda block: block["data"].get("conditionId") not in conditions, blocks
-            )
-        )
+        deleteIndexes = []
+        condition_tag_locations = generate_condition_tag_locations(self.content)
+        for condition_id in conditions:
+            deleteIndexes += condition_tag_locations.get(condition_id, [])
 
-        self.content["blockMap"]["document"]["nodes"] = new_blocks
-
+        self.content = delete_html_by_indexes(self.content, deleteIndexes)
+        
         return self.content
 
     def send_email(self):
