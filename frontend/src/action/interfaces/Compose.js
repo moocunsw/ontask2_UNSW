@@ -258,7 +258,7 @@ class Compose extends React.Component {
                     textAlign: "center",
                     border: "1px solid #d9d9d9",
                     borderRadius: "4px",
-                    padding: "1px 7px 2px",
+                    padding: 6,
                     cursor: "move"
                   }}
                 >
@@ -279,6 +279,7 @@ class Compose extends React.Component {
                       <Button
                         icon="edit"
                         size="small"
+                        style={{ marginRight: 4 }}
                         onClick={(e) => {
                           this.setState({
                             querybuilder: {
