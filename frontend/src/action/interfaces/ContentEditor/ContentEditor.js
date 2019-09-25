@@ -1,7 +1,7 @@
 import React from "react";
 
 import { Editor } from 'slate-react';
-import { Value } from 'slate';
+import { Value, Block } from 'slate';
 import SoftBreak from "slate-soft-break";
 
 import Mark from './packages/Mark';
@@ -43,8 +43,16 @@ class ContentEditor extends React.Component {
           { type: 'attribute' },
           { type: 'condition-wrapper' },
           { type: 'condition' }
-        ]}
-      ]
+        ], min: 1}
+      ],
+      normalize: (editor, { code, node, child, index }) => {
+        switch (code) {
+          case 'child_min_invalid':
+            return editor.insertNodeByKey(node.key, index, Block.create({ object: 'block', type: 'paragraph' }));
+          default:
+            return
+        }
+      }
     }
   };
 
