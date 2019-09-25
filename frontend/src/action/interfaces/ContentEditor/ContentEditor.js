@@ -32,6 +32,9 @@ class ContentEditor extends React.Component {
       nodes: [
         { match: [
           { type: 'paragraph' },
+        ], min: 1},
+        { match: [
+          { type: 'paragraph' },
           { type: 'list-item' },
           { type: 'bulleted-list' },
           { type: 'numbered-list' },
@@ -43,7 +46,7 @@ class ContentEditor extends React.Component {
           { type: 'attribute' },
           { type: 'condition-wrapper' },
           { type: 'condition' }
-        ], min: 1}
+        ]}
       ],
       normalize: (editor, { code, node, child, index }) => {
         switch (code) {
