@@ -26,32 +26,37 @@ const initialValue = Value.fromJSON({
   },
 });
 
+const nonConditionNodes = [
+  { type: 'paragraph' },
+  { type: 'list-item' },
+  { type: 'bulleted-list' },
+  { type: 'numbered-list' },
+  { type: 'code' },
+  { type: 'heading-one' },
+  { type: 'heading-two' },
+  { type: 'link' },
+  { type: 'image' },
+  { type: 'attribute' }
+];
+
 class ContentEditor extends React.Component {
   schema = {
     document: {
       nodes: [
         { match: [
-          { type: 'paragraph' },
-        ], min: 1},
-        { match: [
-          { type: 'paragraph' },
-          { type: 'list-item' },
-          { type: 'bulleted-list' },
-          { type: 'numbered-list' },
-          { type: 'code' },
-          { type: 'heading-one' },
-          { type: 'heading-two' },
-          { type: 'link' },
-          { type: 'image' },
-          { type: 'attribute' },
+          ...nonConditionNodes,
           { type: 'condition-wrapper' },
           { type: 'condition' }
         ]}
       ],
+      first: nonConditionNodes,
+      last: nonConditionNodes,
       normalize: (editor, { code, node, child, index }) => {
         switch (code) {
-          case 'child_min_invalid':
-            return editor.insertNodeByKey(node.key, index, Block.create({ object: 'block', type: 'paragraph' }));
+          case 'first_child_type_invalid':
+            return editor.insertNodeByKey(node.key, 0, Block.create({ object: 'block', type: 'paragraph' }));
+          case 'last_child_type_invalid':
+            return editor.insertNodeByKey(node.key, node.nodes.size, Block.create({ object: 'block', type: 'paragraph' }));
           default:
             return
         }

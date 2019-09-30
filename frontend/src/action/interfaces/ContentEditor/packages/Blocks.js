@@ -95,13 +95,29 @@ function Blocks(options) {
     },
     onKeyDown(event, editor, next) {
       const { value } = editor;
-      const { selection, anchorText, anchorBlock } = value;
+      const { selection, anchorText, anchorBlock, document } = value;
       const { start } = selection;
+      const offset = start.offset;
       const nodeType = anchorBlock.type;
       const parent = editor.getCurrentParent();
       const parentType = editor.getParentType();
 
       const hasParentList = ["bulleted-list", "numbered-list"].includes(parentType);
+
+      const prevNode = document.getPreviousNode(anchorBlock.key);
+      const nextNode = document.getNextNode(anchorBlock.key);
+
+      const prevNodeType = prevNode && prevNode.type;
+      const prevNodeParent = prevNode && document.getParent(prevNode.key);
+      const prevNodeParentKey = prevNodeParent && prevNodeParent.key;
+      const isPrevNodeCondition = ["condition-wrapper", "condition"].includes(prevNodeType);
+
+      const prevNodeBlocks = prevNode && prevNode.getBlocks();
+      const lastPrevNodeBlock = prevNodeBlocks && prevNodeBlocks.get(prevNodeBlocks.size - 1);
+
+      const nextNodeBlocks = nextNode && nextNode.getBlocks();
+      const firstNextNodeBlock = nextNodeBlocks && nextNodeBlocks.get(0);
+
 
       // List depth
       if (event.key === 'Tab') {
@@ -124,15 +140,54 @@ function Blocks(options) {
       // Removes leftover bulleted-list & numbered-list blocks
       if (event.key === 'Backspace') {
         event.preventDefault();
-        const offset = start.offset;
 
         if (hasParentList && offset === 0 && (nodeType !== "list-item" || parent.nodes.size === 1)) {
+          // console.log("A")
           editor.unwrapBlock(parentType);
+          return false;
+        }
+
+        // Backspace into a condition block, or out of a condition block
+        if ((anchorText.text === '' || offset === 0) && (isPrevNodeCondition || (prevNodeParentKey !== parent.key))) {
+          editor.moveBackward();
+          return false; // Prevents moving backwards twice
+        }
+      }
+
+      if (event.keyCode === 38) { // UP
+        // If condition for case when cursor is at start of document
+        if (!!lastPrevNodeBlock || !!prevNode) {
+          event.preventDefault();
+          if (!!lastPrevNodeBlock)
+            editor
+              .moveToEndOfNode(lastPrevNodeBlock)
+              .moveTo(offset);
+          else
+            editor
+              .moveToEndOfNode(prevNode)
+              .moveTo(offset);
+          // Offset
           return false;
         }
       }
 
-      if (event.key === "Enter") {
+      if (event.keyCode === 40) { // DOWN
+        // If condition for case when cursor is at end of document
+        if (!!firstNextNodeBlock || !!nextNode) {
+          event.preventDefault();
+          if (!!firstNextNodeBlock)
+            editor
+              .moveToEndOfNode(firstNextNodeBlock)
+              .moveTo(offset);
+          else
+            editor
+              .moveToEndOfNode(nextNode)
+              .moveTo(offset);
+          return false;
+        }
+      }
+
+      if (event.key === "Enter" && !event.shiftKey) {
         // Enter on Heading Block to remove heading style
         if (["heading-one", "heading-two"].includes(anchorBlock.type)) {
           editor
@@ -143,6 +198,11 @@ function Blocks(options) {
         // Enter on empty list item block to unwrap list
         if (nodeType === "list-item" && hasParentList && anchorText.text === '') {
           editor.unwrapBlock(parentType);
+          return false;
+        }
+        // Enter in a condition block
+        if (nodeType === "paragraph" && parentType === "condition" && anchorText.text === '') {
+          editor.moveForward();
           return false;
         }
       }

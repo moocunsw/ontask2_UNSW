@@ -4,6 +4,19 @@ import { Block } from 'slate';
 
 import { Button, Tooltip } from 'antd';
 
+const nonConditionNodes = [
+  { type: 'paragraph' },
+  { type: 'list-item' },
+  { type: 'bulleted-list' },
+  { type: 'numbered-list' },
+  { type: 'code' },
+  { type: 'heading-one' },
+  { type: 'heading-two' },
+  { type: 'link' },
+  { type: 'image' },
+  { type: 'attribute' }
+];
+
 function Rules(options) {
   const { rules, types, colours } = options;
 
@@ -21,25 +34,23 @@ function Rules(options) {
           // No Text
           nodes: [
             { match: [
-              { type: 'paragraph' },
-              { type: 'list-item' },
-              { type: 'bulleted-list' },
-              { type: 'numbered-list' },
-              { type: 'code' },
-              { type: 'heading-one' },
-              { type: 'heading-two' },
-              { type: 'link' },
-              { type: 'image' },
-              { type: 'attribute' },
+              ...nonConditionNodes,
               { type: 'condition-wrapper' },
               { type: 'condition' }
-            ]}
+            ]},
           ],
+          first: nonConditionNodes,
+          last: nonConditionNodes,
           normalize: (editor, { code, node, child, index }) => {
             switch (code) {
               case 'child_type_invalid':
                 // Prevent Deletion of Block
                 return editor.insertNodeByKey(node.key, index, Block.create({ object: 'block', type: 'paragraph' }));
+              case 'first_child_type_invalid':
+                return editor.insertNodeByKey(node.key, 0, Block.create({ object: 'block', type: 'paragraph' }));
+              case 'last_child_type_invalid':
+                // return editor.setBlocks('paragraph');
+                return editor.insertNodeByKey(node.key, node.nodes.size, Block.create({ object: 'block', type: 'paragraph' }));
               default:
                 return;
             }
