@@ -4,7 +4,6 @@ import { Tooltip } from 'antd';
 
 const DEFAULT_NODE = "paragraph";
 
-// TODO User Types '<num>.' or '-' should auto render ordered, unordered list respectively
 function Blocks(options) {
   return {
     schema: {
@@ -118,7 +117,6 @@ function Blocks(options) {
       const nextNodeBlocks = nextNode && nextNode.getBlocks();
       const firstNextNodeBlock = nextNodeBlocks && nextNodeBlocks.get(0);
 
-
       // List depth
       if (event.key === 'Tab') {
         event.preventDefault();
@@ -154,7 +152,7 @@ function Blocks(options) {
         }
       }
 
-      if (event.keyCode === 38) { // UP
+      if (event.key === "ArrowUp") {
         // If condition for case when cursor is at start of document
         if (!!lastPrevNodeBlock || !!prevNode) {
           event.preventDefault();
@@ -171,7 +169,7 @@ function Blocks(options) {
         }
       }
 
-      if (event.keyCode === 40) { // DOWN
+      if (event.key === "ArrowDown") {
         // If condition for case when cursor is at end of document
         if (!!firstNextNodeBlock || !!nextNode) {
           event.preventDefault();
@@ -204,6 +202,32 @@ function Blocks(options) {
         if (nodeType === "paragraph" && parentType === "condition" && anchorText.text === '') {
           editor.moveForward();
           return false;
+        }
+      }
+      return next();
+    },
+    onKeyUp(event, editor, next) {
+      const { value } = editor;
+      const { anchorText } = value;
+      const { text } = anchorText
+
+      // Reference: canner-slate-editor
+      if (event.key === " ") {
+        // * item
+        // + item
+        // - item
+        if (text.match(/((?:^\s*)(?:[*+-]\s))/m)) {
+          editor
+            .deleteBackward(2)
+            .wrapBlock('bulleted-list')
+            .setBlocks("list-item");
+        }
+        // 1. item
+        if (text.match(/((?:^\s*)(?:\d+\.\s))/m)) {
+          editor
+            .deleteBackward(3)
+            .wrapBlock('numbered-list')
+            .setBlocks("list-item");
         }
       }
       return next();
