@@ -26,6 +26,7 @@ import FieldDesign from "./FieldDesign";
 import formItemLayout from "../../shared/FormItemLayout";
 import apiRequest from "../../shared/apiRequest";
 import Field from "../../shared/Field";
+import ContentTable from "../../shared/ContentTable";
 
 class DataLabForm extends React.Component {
   state = { singleRecordIndex: 0 };
@@ -286,7 +287,7 @@ class DataLabForm extends React.Component {
           let value = column in record ? text : null;
 
           if (field && field.type === "checkbox-group")
-            value = _.pick(record, field.columns);
+            value = _.pick(record, field.columns.map(column => `${field.name}__${column}`));
 
           return <Field readOnly={!field} field={field} value={value} />;
         }
@@ -313,8 +314,8 @@ class DataLabForm extends React.Component {
             </Select>,
             <Divider key="divider" />
           ]}
-
-          <Table
+          <ContentTable
+            fields={fields}
             columns={tableColumns}
             dataSource={
               grouping !== undefined || grouping !== null
@@ -345,7 +346,7 @@ class DataLabForm extends React.Component {
             );
 
             if (field && field.type === "checkbox-group")
-              value = _.pick(record.item, field.columns);
+              value = _.pick(record, field.columns.map(column => `${field.name}__${column}`));
 
             return (
               <Field

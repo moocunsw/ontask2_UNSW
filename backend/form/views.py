@@ -22,6 +22,8 @@ import logging
 
 logger = logging.getLogger("ontask")
 
+from pprint import pprint
+
 
 class ListForms(APIView):
     def post(self, request):
@@ -208,7 +210,7 @@ class AccessForm(APIView):
         form_fields = [form.primary]
         for field in form.fields:
             if field.type == "checkbox-group":
-                form_fields.extend(field.columns)
+                form_fields.extend([f"{field.name}__{column}" for column in field.columns])
             else:
                 form_fields.append(field.name)
 
@@ -249,11 +251,19 @@ class AccessForm(APIView):
         )
 
         logger.info("form.access", extra={"id": id, "user": request.user.email})
-
+        pprint(data)
+        print("\n\n\n\n\n\n")
+        pprint(form.data)
         return Response(serializer.data)
 
     def patch(self, request, id):
+        # Data is cleaned up version of form.data
         [form, data, editable_records, default_group] = self.get_data(id)
+        # import pprint
+        # pprint(form.data)
+        # pprint(data)
+        # print(editable_records)
+        # print(default_group)
 
         primary = request.data.get("primary")
         if primary not in editable_records:
@@ -261,11 +271,25 @@ class AccessForm(APIView):
 
         field = request.data.get("field")
         value = request.data.get("value")
+        print(field, value)
+        # column = request.data.get("loadingKey")
+        # addColumn = request.data.get("addColumn")
+        # print(column)
+
+        # if addColumn: field = f"{column}__{field}"
+        # print(field)
+
+        # Enforce uniqueness of checkboxgroups
+
+        # field = f"{column}__{field}"
 
         data = pd.DataFrame(data=form.data)
         if form.primary in data.columns:
+            # Sort dataframe by form.primary
             data.set_index(form.primary, inplace=True)
+            # print(data)
             data = data.T.to_dict()
+            # print(data)
             if primary in data:
                 data[primary][field] = value
             else:
@@ -280,8 +304,9 @@ class AccessForm(APIView):
 
         # Replace NaN values with None
         data.replace({pd.np.nan: None}, inplace=True)
-
+        print(f"\n\n\n{data}\n\n\n")
         data = data.to_dict("records")
+        # print(data)
         form.data = data
         form.save()
 

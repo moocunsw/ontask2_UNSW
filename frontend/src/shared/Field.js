@@ -24,6 +24,7 @@ class Field extends React.Component {
     this.state = {
       value: props.value
     };
+    // console.log(props.value);
   }
 
   componentDidUpdate(prevProps) {
@@ -224,22 +225,32 @@ class Field extends React.Component {
     const { field, onSave } = this.props;
     const { value } = this.state;
 
+    // console.log(field);
+
     const fieldColumns = field.columns &&
       field.columns.map(column => (
         <div
-          className={value && value[column] ? "active" : "inactive"}
+          className={value && value[`${field.name}__${column}`] ? "active" : "inactive"}
           key={column}
           onClick={() => {
-            const newValue = !value[column];
+            const columnName = `${field.name}__${column}`;
+            const newValue = !value[columnName];
+            // console.log({...value});
+            // console.log(field);
+            // console.log(column);
+            // console.log(newValue);
+            // console.log(column);
 
             this.setState({
-              value: { ...value, [column]: newValue }
+              value: { ...value, [columnName]: newValue }
             });
 
             if (!onSave) return;
-
-            if (this.props.value[column] !== newValue) {
-              onSave(newValue, column);
+            // console.log(this.props.value)
+            // console.log(newValue);
+            // console.log(value)
+            if (this.props.value[columnName] !== newValue) {
+              onSave(newValue, columnName);
             }
           }}
         >
@@ -298,7 +309,7 @@ class Field extends React.Component {
                     {field.columns.map(column => (
                       <div
                         className={
-                          value && value[column] ? "active" : "inactive"
+                          value && value[`${field.name}__${column}`] ? "active" : "inactive"
                         }
                         key={column}
                       >
