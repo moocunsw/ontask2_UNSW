@@ -18,6 +18,7 @@ import _ from "lodash";
 
 import apiRequest from "../shared/apiRequest";
 import Field from "../shared/Field";
+import ContentTable from "../shared/ContentTable";
 
 import "./Form.css";
 
@@ -26,7 +27,7 @@ const { Content } = Layout;
 class Form extends React.Component {
   state = { fetching: true, singleRecordIndex: 0, saved: {} };
 
-  componentDidMount() {
+  componentWillMount() {
     const { match, history } = this.props;
 
     apiRequest(`/form/${match.params.id}/access/`, {
@@ -67,12 +68,15 @@ class Form extends React.Component {
   generateColumns = (form, columnNames) => {
     const { singleRecordIndex } = this.state;
 
+    if (!form || !columnNames) { return [] }
+    // console.log(columnNames);
+
     if (form.layout === "table") {
       return columnNames.map((column, columnIndex) => ({
         title: column,
         dataIndex: column,
         key: columnIndex,
-        sorter: (a, b) => (a[column] || "").localeCompare(b[column] || ""),
+        sorter: (a, b) => String(a[column] || "").localeCompare(String(b[column] || "")),
         render: (value, record, index) => {
           const field = form.fields.find(field => field.name === column);
           const editable =
@@ -80,8 +84,16 @@ class Form extends React.Component {
             form.editable_records.includes(_.get(record, form.primary)) &&
             field;
 
+
           if (field && field.type === "checkbox-group")
-            value = _.pick(record, field.columns);
+            value = _.pick(record, field.columns.map(column => `${field.name}__${column}`));
+
+
+          // console.log(column); // Column Name
+          // console.log(record); // Row Info (Object)
+          // console.log(field); // Field Info
+          // console.log(value); // Value of the Field (if checkbox, then object)
+          // console.log(editable); // Undefined if non editable, otherwise same as field
 
           return (
             <Field
@@ -122,7 +134,7 @@ class Form extends React.Component {
               field;
 
             if (field && field.type === "checkbox-group")
-              value = _.pick(record.item, field.columns);
+              value = _.pick(record, field.columns.map(column => `${field.name}__${column}`));
 
             return (
               <Field
@@ -150,6 +162,21 @@ class Form extends React.Component {
   handleSubmit = (primary, field, value, index, loadingKey) => {
     const { match } = this.props;
     const { saved, form } = this.state;
+
+    // const { fields } = form;
+    // const item = fields.find(field => field.name === loadingKey);
+    // Boolean value to determine if field should be passed as {loadingKey__field}
+    // const addColumn = item && item.type === "checkbox-group";
+    // console.log(addColumn);
+
+    // console.log(primary);
+    // console.log(field);
+    // console.log(value);
+    // console.log(index);
+    // console.log(loadingKey);
+
+    // console.log(form);
+    // const columnField = `${loadingKey}_${field}`;
 
     const data = form.data;
     data.forEach(item => {
@@ -251,7 +278,7 @@ class Form extends React.Component {
     const {
       fetching,
       form,
-      tableColumns,
+      // tableColumns,
       columnNames,
       singleRecordIndex,
       saved,
@@ -266,6 +293,8 @@ class Form extends React.Component {
         ? new Set(form.data.map(item => item[form.groupBy]))
         : [];
 
+    const tableColumns = this.generateColumns(form, columnNames);
+    // console.log(tableColumns);
     return (
       <div className="form">
         <Content className="wrapper">
@@ -472,7 +501,8 @@ class Form extends React.Component {
                           <Divider key="divider" />
                         ]}
 
-                        <Table
+                        <ContentTable
+                          fields={form.fields}
                           columns={tableColumns}
                           dataSource={
                             grouping !== undefined && grouping !== null

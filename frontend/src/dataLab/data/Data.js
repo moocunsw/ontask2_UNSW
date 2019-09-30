@@ -243,7 +243,7 @@ class Data extends React.Component {
         // },
         render: (text, record, index) => {
           if (field && field.type === "checkbox-group")
-            text = _.pick(record, field.columns);
+            text = _.pick(record, field.columns.map(column => `${field.name}__${column}`));
 
           return (
             <div className="editable-field">
@@ -383,6 +383,18 @@ class Data extends React.Component {
     const tableDataAmount = tableData.length;
 
     const groups = groupBy ? new Set(data.map(item => item[groupBy])) : [];
+
+    // console.log(data.length > 1
+    //   ? grouping !== undefined
+    //     ? tableData.filter(
+    //         item => _.get(item, groupBy) === grouping
+    //       )
+    //     : tableData
+    //   : columns.map((column, i) => ({
+    //       column,
+    //       value: _.get(data[0], column.details.label),
+    //       item: data[0]
+    //     })));
 
     return (
       <div className="data" style={{ marginTop: 25 }}>
