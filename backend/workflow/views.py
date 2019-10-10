@@ -16,16 +16,7 @@ import base64
 import jwt
 
 from .serializers import ActionSerializer
-from .models import (
-    Workflow,
-    EmailSettings,
-    EmailJob,
-    Email,
-    Rule,
-    Filter,
-    Content,
-    Schedule,
-)
+from .models import Workflow, EmailSettings, EmailJob, Email, Rule, Filter, Schedule
 from .permissions import WorkflowPermissions
 
 from container.models import Container
@@ -128,7 +119,6 @@ class WorkflowViewSet(viewsets.ModelViewSet):
         self.check_object_permissions(request, action)
 
         rule = request.data.get("rule")
-        rule_index = request.data.get("ruleIndex")
 
         if request.method == "POST":
             action.rules += [Rule(**rule)]  # Add to end of list
@@ -140,36 +130,50 @@ class WorkflowViewSet(viewsets.ModelViewSet):
 
         elif request.method == "PUT":
             updated_rule = Rule(**rule)
-            old_rule = action.rules[rule_index]
 
-            updated_rule_conditions = {
-                str(condition.conditionId) for condition in updated_rule.conditions
-            }
-            old_rule_conditions = {
-                str(condition.conditionId) for condition in old_rule.conditions
-            }
-            deleted_conditions = old_rule_conditions - updated_rule_conditions
+            for i, old_rule in enumerate(action.rules):
+                if not str(old_rule.ruleId) == rule["ruleId"]:
+                    continue
 
-            action.content = action.clean_content(deleted_conditions)
-            action.rules[rule_index] = updated_rule
+                updated_rule_conditions = {
+                    str(condition.conditionId) for condition in updated_rule.conditions
+                }
+                old_rule_conditions = {
+                    str(condition.conditionId) for condition in old_rule.conditions
+                }
 
-            logger.info(
-                "action.update_rule",
-                extra={"user": self.request.user.email, "payload": self.request.data},
-            )
+                deleted_conditions = old_rule_conditions - updated_rule_conditions
+
+                action.rules[i] = updated_rule
+
+                logger.info(
+                    "action.update_rule",
+                    extra={
+                        "user": self.request.user.email,
+                        "payload": self.request.data,
+                    },
+                )
+                break
 
         elif request.method == "DELETE":
-            rule = action.rules[rule_index]
-            deleted_conditions = [
-                str(condition.conditionId) for condition in rule.conditions
-            ] + [str(rule.catchAll)]
-            action.content = action.clean_content(deleted_conditions)
-            del action.rules[rule_index]
+            for i, old_rule in enumerate(action.rules):
+                if not str(old_rule.ruleId) == rule["ruleId"]:
+                    continue
 
-            logger.info(
-                "action.delete_rule",
-                extra={"user": self.request.user.email, "payload": self.request.data},
-            )
+                deleted_conditions = [
+                    str(condition.conditionId) for condition in old_rule.conditions
+                ] + [str(old_rule.catchAll)]
+
+                del action.rules[i]
+
+                logger.info(
+                    "action.delete_rule",
+                    extra={
+                        "user": self.request.user.email,
+                        "payload": self.request.data,
+                    },
+                )
+                break
 
         action.save()
 
@@ -186,8 +190,7 @@ class WorkflowViewSet(viewsets.ModelViewSet):
             populated_content = action.populate_content()
             return Response(populated_content)
         else:
-            content = request.data.get("content")
-            content = Content(**content)
+            content = request.data.get("content")["html"]
 
             # User-provided content is being previewed
             if request.method == "POST":
@@ -257,6 +260,8 @@ class WorkflowViewSet(viewsets.ModelViewSet):
         if not action.content:
             raise ValidationError("Email content cannot be empty.")
 
+        action.emailLocked = True
+        action.save()
         action.send_email()
 
         logger.info(
@@ -265,6 +270,13 @@ class WorkflowViewSet(viewsets.ModelViewSet):
         )
 
         return Response({"success": "true"})
+
+    @detail_route(methods=["get"])
+    def locked(self, request, id=None):
+        action = ActionSerializer(self.get_object()).data
+        return Response(
+            {"emailLocked": action["emailLocked"], "emailJobs": action["emailJobs"]}
+        )
 
     @list_route(methods=["get"], permission_classes=[AllowAny])
     def read_receipt(self, request):
@@ -318,8 +330,7 @@ class WorkflowViewSet(viewsets.ModelViewSet):
         serializer.save()
 
         logger.info(
-            "action.clone",
-            extra={"user": self.request.user.email, "action": str(id)},
+            "action.clone", extra={"user": self.request.user.email, "action": str(id)}
         )
 
         return Response(status=HTTP_200_OK)

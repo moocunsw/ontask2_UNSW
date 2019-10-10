@@ -37,11 +37,13 @@
 .action .material-icons {
   cursor: pointer;
   color: #ccc;
-  margin-right: 10px;
-  margin-bottom: 5px;
+  padding: 7.5px;
 }
 .action .material-icons.active {
   color: black;
+}
+.action .material-icons:hover {
+  background-color: #F1F1F1;
 }
 .action .toolbar {
   padding: 5px 0;
@@ -51,6 +53,7 @@
 }
 .action .toolbar .attribute_select {
   width: 125px;
+  padding: 7.5px;
 }
 .action_toolbar_popup {
   max-width: 200px;

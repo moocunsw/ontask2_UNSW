@@ -5,7 +5,7 @@ import {
   Alert,
   Spin,
   Icon,
-  Tooltip,
+  // Tooltip,
   Divider,
   Table,
   Modal,
@@ -13,16 +13,16 @@ import {
   notification
 } from "antd";
 import moment from "moment";
-import _ from "lodash";
+// import _ from "lodash";
 
-import { narrowFormItemLayout } from "../../shared/FormItemLayout";
+// import { narrowFormItemLayout } from "../../shared/FormItemLayout";
 
-import SchedulerModal from "../../scheduler/SchedulerModal";
+// import SchedulerModal from "../../scheduler/SchedulerModal";
 import EmailSettings from "./EmailSettings";
 
 import apiRequest from "../../shared/apiRequest";
 
-const FormItem = Form.Item;
+// const FormItem = Form.Item;
 
 class Email extends React.Component {
   constructor(props) {
@@ -44,7 +44,9 @@ class Email extends React.Component {
       previewing: true,
       sending: false,
       options,
-      emailView: { visible: false }
+      emailView: { visible: false },
+      emailLocked: true,
+      intervalId: null
     };
 
     this.dayMap = {
@@ -65,6 +67,27 @@ class Email extends React.Component {
     });
   }
 
+  componentDidMount = () => {
+    this.checkEmailStatus();
+  };
+
+  componentDidUpdate = () => {
+    const { emailLocked, intervalId } = this.state;
+    if (emailLocked && intervalId === null) {
+      const newInterval = setInterval(this.checkEmailStatus, 5000);
+      this.setState({ intervalId: newInterval });
+    }
+    else if (!emailLocked && intervalId !== null) {
+      clearInterval(intervalId);
+      this.setState({ intervalId: null });
+    }
+  };
+
+  componentWillUnmount = () => {
+    const { intervalId } = this.state;
+    if (intervalId !== null) clearInterval(intervalId);
+  };
+
   handleSubmit = () => {
     const { form, action, history } = this.props;
 
@@ -84,10 +107,24 @@ class Email extends React.Component {
               "Upon completion, you will receive an email outlining the job summary"
           });
           this.setState({ sending: false });
-          history.push("/dashboard");
+          const newInterval = setInterval(this.checkEmailStatus, 5000);
+          this.setState({ intervalId: newInterval, emailLocked: true });
         },
-        onError: error => this.setState({ error })
+        onError: error => this.setState({ sending: false, error })
       });
+    });
+  };
+
+  checkEmailStatus = () => {
+    const { action, updateAction } = this.props;
+
+    apiRequest(`/workflow/${action.id}/locked/`, {
+      method: "GET",
+      onSuccess: ({ emailLocked, emailJobs }) => {
+        this.setState({ emailLocked  });
+        updateAction({ ...action, emailJobs });
+      },
+      onError: error => console.log(error)
     });
   };
 
@@ -363,10 +400,11 @@ class Email extends React.Component {
       sending,
       previewing,
       error,
-      scheduler,
+      // scheduler,
       options,
       index,
-      populatedContent
+      populatedContent,
+      emailLocked
     } = this.state;
 
     return (
@@ -486,27 +524,29 @@ class Email extends React.Component {
           )}
         </div>
 
-        <div className={`preview ${previewing && "loading"}`}>
-          {previewing ? (
-            <Spin size="large" />
-          ) : (
-            <div
-              dangerouslySetInnerHTML={{
-                __html: populatedContent[index]
-              }}
-            />
-          )}
-        </div>
+        {previewing ? (
+          <Spin size="large" />
+        ) : (
+          <div>
+            <div className={`preview ${previewing && "loading"}`}>
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: populatedContent[index]
+                }}
+              />
+            </div>
 
-        <Button
-          loading={sending}
-          type="primary"
-          size="large"
-          onClick={this.handleSubmit}
-        >
-          Send once-off email
-        </Button>
-
+            <Button
+              loading={sending}
+              disabled={emailLocked}
+              type="primary"
+              size="large"
+              onClick={this.handleSubmit}
+            >
+              {emailLocked ? "Emailing in progress, please wait" : "Send once-off email"}
+            </Button>
+          </div>
+        )}
         {error && <Alert message={error} className="error" type="error" />}
       </div>
     );

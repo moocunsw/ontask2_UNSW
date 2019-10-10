@@ -158,25 +158,27 @@ class ComputedFieldModal extends React.Component {
 
   componentDidUpdate(prevProps) {
     const { visible, field } = this.props;
-    const { value } = this.state;
 
     const newState = {};
 
     if (!prevProps.visible && visible)
       newState.treeData = this.generateTreeData();
 
-    if (!prevProps.field && field) {
-      // Manually reconstruct the block map
-      // Using Value.fromJSON(formula.field) does not work, as functions
-      // such as value.endBlock fail to reflect the imported block map
-      let change = value.change();
-      field.formula.document.nodes.forEach(node => {
-        if (node.type !== "paragraph") change = change.insertBlock(node);
+    if (Object.keys(newState).length > 0) {
+      this.setState(newState, () => {
+        // At this point, this.editor ref is defined
+        if (!prevProps.field && field) {
+          // Manually reconstruct the block map
+          // Using Value.fromJSON(formula.field) does not work, as functions
+          // such as value.endBlock fail to reflect the imported block map
+          field.formula.document.nodes.forEach(node => {
+            if (node.type !== "paragraph") this.editor.insertBlock(node);
+          });
+          newState.value = this.editor.value;
+          if (Object.keys(newState).length > 0) this.setState(newState);
+        }
       });
-      newState.value = change.value;
     }
-
-    if (Object.keys(newState).length > 0) this.setState(newState);
   }
 
   handleOk = () => {
@@ -249,10 +251,9 @@ class ComputedFieldModal extends React.Component {
     });
   };
 
-  renderNode = props => {
-    const { attributes, children, node } = props;
-    const { value, treeData } = this.state;
-    const change = value.change();
+  renderBlock = props => {
+    const { attributes, node } = props;
+    const { treeData } = this.state;
 
     switch (node.type) {
       case "paragraph":
@@ -266,7 +267,6 @@ class ComputedFieldModal extends React.Component {
               alignItems: "center"
             }}
           >
-            {children}
           </p>
         );
       case "aggregation": {
@@ -296,7 +296,6 @@ class ComputedFieldModal extends React.Component {
                 {type}:
               </div>
               <div>
-                {children}
                 <TreeSelect
                   treeData={treeData}
                   treeCheckable={true}
@@ -308,10 +307,9 @@ class ComputedFieldModal extends React.Component {
                   className="tree-select"
                   value={columns}
                   onChange={columns => {
-                    change.setNodeByKey(node.key, {
+                    this.editor.setNodeByKey(node.key, {
                       data: { type, columns, delimiter }
                     });
-                    this.onChange(change);
                   }}
                 />
               </div>
@@ -330,10 +328,9 @@ class ComputedFieldModal extends React.Component {
                   }}
                   value={delimiter === undefined ? "," : delimiter}
                   onChange={delimiter => {
-                    change.setNodeByKey(node.key, {
+                    this.editor.setNodeByKey(node.key, {
                       data: { type, columns, delimiter }
                     });
-                    this.onChange(change);
                   }}
                 >
                   <Option value="">None</Option>
@@ -362,7 +359,6 @@ class ComputedFieldModal extends React.Component {
               cursor: "default"
             }}
           >
-            {children}
             {name}
           </div>
         );
@@ -388,7 +384,6 @@ class ComputedFieldModal extends React.Component {
               cursor: "default"
             }}
           >
-            {children}
             {typeMap[type]}
           </div>
         );
@@ -444,7 +439,6 @@ class ComputedFieldModal extends React.Component {
 
   Parentheses = () => {
     const { value } = this.state;
-    const change = value.change();
 
     const lastBlock = value.endBlock.type;
     const hasUnclosedParenthesis = this.hasUnclosedParenthesis(value);
@@ -455,10 +449,9 @@ class ComputedFieldModal extends React.Component {
           <Button
             style={{ padding: "0 10px", borderRadius: "4px 0 0 4px" }}
             onClick={() => {
-              change.insertBlock({
+              this.editor.insertBlock({
                 type: "open-bracket"
               });
-              this.onChange(change);
             }}
             disabled={
               !["paragraph", "operator"].includes(lastBlock) ||
@@ -477,10 +470,9 @@ class ComputedFieldModal extends React.Component {
               marginRight: 5
             }}
             onClick={() => {
-              change.insertBlock({
+              this.editor.insertBlock({
                 type: "close-bracket"
               });
-              this.onChange(change);
             }}
             disabled={
               !["aggregation", "field"].includes(lastBlock) ||
@@ -496,14 +488,12 @@ class ComputedFieldModal extends React.Component {
 
   AggregationFunctions = () => {
     const { value } = this.state;
-    const change = value.change();
 
     const handleMenuClick = e => {
-      change.insertBlock({
+      this.editor.insertBlock({
         type: "aggregation",
         data: { type: e.key, delimiter: e.key === "concat" && "," }
       });
-      this.onChange(change);
     };
 
     const numberOfBlocks = value.toJSON().document.nodes.length;
@@ -541,14 +531,12 @@ class ComputedFieldModal extends React.Component {
 
   Columns = () => {
     const { value, treeData } = this.state;
-    const change = value.change();
 
     const handleMenuClick = e => {
-      change.insertBlock({
+      this.editor.insertBlock({
         type: "field",
         data: { name: e.key }
       });
-      this.onChange(change);
     };
 
     const menu = (
@@ -589,14 +577,12 @@ class ComputedFieldModal extends React.Component {
 
   Operators = () => {
     const { value } = this.state;
-    const change = value.change();
 
     const handleMenuClick = e => {
-      change.insertBlock({
+      this.editor.insertBlock({
         type: "operator",
         data: { type: e.key }
       });
-      this.onChange(change);
     };
 
     const menu = (
@@ -628,9 +614,6 @@ class ComputedFieldModal extends React.Component {
   };
 
   DeleteBlock = () => {
-    const { value } = this.state;
-    const change = value.change();
-
     return (
       <Tooltip title="Delete last block from formula">
         <Button
@@ -638,8 +621,7 @@ class ComputedFieldModal extends React.Component {
           type="danger"
           style={{ float: "right" }}
           onClick={() => {
-            change.moveToEnd().deleteBackward(1);
-            this.onChange(change);
+            this.editor.moveToEnd().deleteBackward(1);
           }}
         />
       </Tooltip>
@@ -714,9 +696,10 @@ class ComputedFieldModal extends React.Component {
 
         <Editor
           readOnly
+          ref={editor => this.editor = editor}
           value={value}
           onChange={this.onChange}
-          renderNode={this.renderNode}
+          renderBlock={this.renderBlock}
           placeholder="Create a formula using the buttons above"
           style={{
             border: "2px solid #ddd",

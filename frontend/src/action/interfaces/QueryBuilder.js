@@ -229,7 +229,8 @@ class QueryBuilder extends React.Component {
 
     return (
       <FormItem>
-        {!["IS_NULL", "IS_NOT_NULL"].includes(operation) && (type !== "checkbox") &&
+        {!["IS_NULL", "IS_NOT_NULL"].includes(operation) &&
+          type !== "checkbox" &&
           getFieldDecorator(`rule.${fieldBase}comparator`, {
             rules: [
               {
@@ -367,7 +368,7 @@ class QueryBuilder extends React.Component {
 
     if (type === "checkbox") {
       if (formulas[0].operator === formulas[1].operator) return true;
-    };
+    }
 
     if (type === "number" || type === "date") {
       const expressionGroups = []; // Two expression "groups", one for each condition
@@ -530,11 +531,12 @@ class QueryBuilder extends React.Component {
   };
 
   handleDelete = () => {
-    const { onSubmit } = this.props;
+    const { selected: rule, onSubmit } = this.props;
 
     this.setState({ error: null, deleting: true });
 
     onSubmit({
+      rule,
       method: "DELETE",
       onSuccess: this.handleClose,
       onError: error => this.setState({ error })
@@ -565,10 +567,15 @@ class QueryBuilder extends React.Component {
     const conditionKeys = getFieldValue("conditionKeys");
     const parameters = getFieldValue("rule.parameters");
 
-    selectedClone &&
-      getFieldDecorator("rule.catchAll", {
-        initialValue: selectedClone && selectedClone.catchAll
+    if (selectedClone) {
+      getFieldDecorator("rule.ruleId", {
+        initialValue: _.get(selectedClone, "ruleId")
       });
+
+      getFieldDecorator("rule.catchAll", {
+        initialValue: _.get(selectedClone, "catchAll")
+      });
+    }
 
     return (
       <Modal
