@@ -115,11 +115,14 @@ class Email extends React.Component {
   };
 
   checkEmailStatus = () => {
-    const { action } = this.props;
+    const { action, updateAction } = this.props;
 
     apiRequest(`/workflow/${action.id}/locked/`, {
       method: "GET",
-      onSuccess: locked => this.setState(locked),
+      onSuccess: ({ emailLocked, emailJobs }) => {
+        this.setState({ emailLocked  });
+        updateAction({ ...action, emailJobs });
+      },
       onError: error => console.log(error)
     });
   };

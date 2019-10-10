@@ -273,8 +273,10 @@ class WorkflowViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=["get"])
     def locked(self, request, id=None):
-        action = self.get_object()
-        return Response({"emailLocked": action.emailLocked})
+        action = ActionSerializer(self.get_object()).data
+        return Response(
+            {"emailLocked": action["emailLocked"], "emailJobs": action["emailJobs"]}
+        )
 
     @list_route(methods=["get"], permission_classes=[AllowAny])
     def read_receipt(self, request):
