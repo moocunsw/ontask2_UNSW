@@ -202,7 +202,7 @@ class ContentEditor extends React.Component {
           }
         />
         <div style={{ marginTop: "10px" }}>
-          <PreviewButton loading={previewing} onClick={this.previewContent} />
+          <PreviewButton previewing={previewing} onClick={this.previewContent} />
           <SaveButton saving={saving} onClick={this.updateContent} />
         </div>
 
