@@ -159,3 +159,16 @@ def replace_tags(html, old, new):
     """
     tagPattern = r"(<\s*\/?\s*)" + old + r"(\s*([^>]*)?\s*>)"
     return re.sub(tagPattern, r"\g<1>" + new + r"\g<2>", html)
+
+def strip_tags(html, old):
+    """Removes all instances of <old ...> and </old>
+
+    Arguments:
+        html {string} -- Serialized HTML String of content editor
+
+    Returns:
+        string -- New HTML String
+    """
+    tagPattern = r"(<\s*\/?\s*)" + old + r"(\s*([^>]*)?\s*>)"
+    return re.sub(tagPattern, "", html)
+    

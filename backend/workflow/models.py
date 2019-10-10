@@ -28,6 +28,7 @@ from .utils import (
     parse_attribute,
     generate_condition_tag_locations,
     replace_tags,
+    strip_tags,
     delete_html_by_indexes
 )
 from scheduler.tasks import workflow_send_email
@@ -292,7 +293,7 @@ class Workflow(Document):
         1. Delete condition blocks that do not match the student attributes
             - Get a list of deleteIndexes of (start,stop) slices of condition tags to delete
             - Perform the iterative deletion
-        2. Clean the HTML (replace <attribute>, <condition>, <cwrapper>) to actual HTML tags
+        2. Clean the HTML (replace <attribute>, <condition>, <rule>) to actual HTML tags
         """
         for item_index, item in enumerate(filtered_data):
             html = content
@@ -305,8 +306,8 @@ class Workflow(Document):
             html = delete_html_by_indexes(html, deleteIndexes)
 
             # 2
-            html = replace_tags(html, "condition", "div")
-            html = replace_tags(html, "cwrapper", "div")
+            html = strip_tags(html, "condition")
+            html = strip_tags(html, "rule")
             html = parse_attribute(html, item, order)
 
             result.append(html)
