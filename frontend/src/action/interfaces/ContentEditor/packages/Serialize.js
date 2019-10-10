@@ -70,10 +70,10 @@ const rules = [
             );
           case "attribute":
             return <attribute>{children}</attribute>;
-          case "condition-wrapper":
-            return <cwrapper index={obj.data.get("ruleIndex")}>{children}</cwrapper>
+          case "rule":
+            return <rule ruleid={obj.data.get("ruleId")}>{children}</rule>
           case "condition":
-            return <condition conditionid={obj.data.get("conditionId")} index={obj.data.get("ruleIndex")} label={obj.data.get("label")}>{children}</condition>;
+            return <condition conditionid={obj.data.get("conditionId")} ruleid={obj.data.get("ruleId")} label={obj.data.get("label")}>{children}</condition>;
           default:
             return;
         }
@@ -188,13 +188,13 @@ const rules = [
           }
         }
       }
-      if (el.tagName.toLowerCase() === "cwrapper") {
+      if (el.tagName.toLowerCase() === "rule") {
         return {
           object: "block",
-          type: "condition-wrapper",
+          type: "rule",
           nodes: next(el.childNodes),
           data: {
-            ruleIndex: el.getAttribute("index")
+            ruleId: el.getAttribute("ruleId")
           }
         }
       }
@@ -206,7 +206,7 @@ const rules = [
           data: {
             label: el.getAttribute("label"),
             conditionId: el.getAttribute("conditionid"),
-            ruleIndex: el.getAttribute("index"),
+            ruleId: el.getAttribute("ruleId"),
           }
         }
       }

@@ -107,7 +107,7 @@ def generate_condition_tag_locations(html):
     Returns:
         [dict{list((start,stop))}] -- Dictionary of condition tag locations
     """
-    tagPattern = r"<condition conditionid=\"(.*?)\" index=\"\d+\"(?: label=\"else\")?>|<\/condition>"
+    tagPattern = r"<condition conditionid=\"(.*?)\" ruleid=\"(.*?)\"(?: label=\"else\")?>|<\/condition>"
     conditionTagLocations = defaultdict(list)
     stack = []
     for match in re.finditer(tagPattern, html):

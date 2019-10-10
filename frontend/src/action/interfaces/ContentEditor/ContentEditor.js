@@ -1,4 +1,5 @@
 import React from "react";
+import { Prompt } from "react-router-dom";
 
 import { Editor } from 'slate-react';
 import { Value, Block } from 'slate';
@@ -45,9 +46,9 @@ class ContentEditor extends React.Component {
       nodes: [
         { match: [
           ...nonConditionNodes,
-          { type: 'condition-wrapper' },
+          { type: 'rule' },
           { type: 'condition' }
-        ]}
+        ]},
       ],
       first: nonConditionNodes,
       last: nonConditionNodes,
@@ -96,7 +97,7 @@ class ContentEditor extends React.Component {
 
   componentDidMount = () => {
     const html = this.editor.generateDocument(this.props.html);
-    this.setState({ value: html });
+    this.setState({ value: html, referenceContent: this.props.html });
   };
 
   componentDidUpdate = () => {
@@ -104,7 +105,7 @@ class ContentEditor extends React.Component {
   };
 
   handleRuleDrag = () => {
-    const { mouseEvent, ruleIndex, rules } = this.props;
+    const { mouseEvent, rule } = this.props;
     const { isInside } = this.state;
 
     if (mouseEvent) {
@@ -124,15 +125,11 @@ class ContentEditor extends React.Component {
         this.setState({ isInside: false });
     }
 
-    if (ruleIndex !== null && isInside) {
+    if (rule !== null && isInside) {
       this.setState({ isInside: false }, () => {
-        this.editor.insertRule(ruleIndex, rules[ruleIndex]);
+        this.editor.insertRule(rule);
       });
     }
-  };
-
-  handleRuleClick(ruleIndex, rules) {
-    this.editor.insertRule(ruleIndex, rules[ruleIndex]);
   };
 
   previewContent = () => {
@@ -154,15 +151,13 @@ class ContentEditor extends React.Component {
   updateContent = () => {
     const { onUpdate } = this.props;
 
-    const content = {
-      html: this.editor.generateHtml()
-    };
 
     this.setState({ error: null, saving: true });
 
+    const html = this.editor.generateHtml();
     onUpdate({
-      content,
-      onSuccess: () => this.setState({ saving: false }),
+      content: { html },
+      onSuccess: () => this.setState({ saving: false, referenceContent: html }),
       onError: error => this.setState({ error })
     });
   };
@@ -210,6 +205,16 @@ class ContentEditor extends React.Component {
           <PreviewButton loading={previewing} onClick={this.previewContent} />
           <SaveButton saving={saving} onClick={this.updateContent} />
         </div>
+
+        <Prompt
+          when={
+            !!(
+              this.editor &&
+              this.editor.generateHtml() !== this.state.referenceContent
+            )
+          }
+          message="You are about to navigate away from this page. If you proceed, any unsaved changes to the content will be lost. Are you sure you want to continue?"
+        />
       </div>
     )
   };

@@ -143,7 +143,7 @@ def workflow_send_email(action_id=None, job_type="Scheduled", **kwargs):
             for index, item in enumerate(batch):
                 recipient = item.get(email_settings.field)
                 if recipient == "" or recipient is None:
-                    null_recipients = +1
+                    null_recipients += 1
                 else:
                     email_content = populated_content[recipient_count]
 

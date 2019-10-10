@@ -23,7 +23,7 @@ function Rules(options) {
   return {
     schema: {
       blocks: {
-        "condition-wrapper": {
+        "rule": {
           nodes: [
             {
               match: [{type: 'condition'}],
@@ -35,7 +35,7 @@ function Rules(options) {
           nodes: [
             { match: [
               ...nonConditionNodes,
-              { type: 'condition-wrapper' },
+              { type: 'rule' },
               { type: 'condition' }
             ]},
           ],
@@ -59,9 +59,8 @@ function Rules(options) {
       }
     },
     commands: {
-      insertRule(editor, ruleIndex, rule) {
-        let ruleBlocks = rule.conditions.map(condition => {
-          return {
+      insertRule(editor, rule) {
+        let ruleBlocks = rule.conditions.map(condition => ({
             type: "condition",
             nodes: [
               {
@@ -71,10 +70,9 @@ function Rules(options) {
             ],
             data: {
               conditionId: condition.conditionId,
-              ruleIndex
+              ruleId: rule.ruleId
             }
-          }
-        });
+          }));
 
         ruleBlocks.push(
           {
@@ -88,16 +86,14 @@ function Rules(options) {
             data: {
               label: "else",
               conditionId: rule.catchAll,
-              ruleIndex
+              ruleId: rule.ruleId
             }
           }
         );
 
         editor.insertBlock({
-          type: "condition-wrapper",
-          data: {
-            ruleIndex
-          },
+          type: "rule",
+          data: { ruleId: rule.ruleId },
           nodes: Block.createList(ruleBlocks)
         });
       },
@@ -105,21 +101,23 @@ function Rules(options) {
     renderBlock(props, editor, next) {
       const { children, node } = props;
       switch (node.type) {
-        case "condition-wrapper":
+        case "rule":
           return <div>{children}</div>
         case "condition":
-          const ruleIndex = node.data.get("ruleIndex");
+          const ruleId = node.data.get("ruleId");
           const conditionId = node.data.get("conditionId");
           // The "else" blocks have a label of "else",
           // otherwise generate a name for the condition based on
           // the condition parameters
           let label = node.data.get("label");
-          if (!label) label = generateLabel(ruleIndex, conditionId, rules, types);
+          if (!label) label = generateLabel(ruleId, conditionId, rules, types);
+
+          const colour = colours[rules.findIndex(obj => obj.ruleId === ruleId)]
 
           return (
             <div
               className="condition_block"
-              style={{ borderColor: colours[ruleIndex] }}
+              style={{ borderColor: colour }}
             >
               <div style={{
                 display: "flex",
@@ -127,7 +125,7 @@ function Rules(options) {
               }}>
                 <div
                   className="condition_name"
-                  style={{ color: colours[ruleIndex] }}
+                  style={{ color: colour }}
                 >
                   If <strong>{label}</strong>:
                 </div>
@@ -150,8 +148,8 @@ function Rules(options) {
   };
 };
 
-function generateLabel(ruleIndex, conditionId, rules, types) {
-  const rule = rules[ruleIndex];
+function generateLabel(ruleId, conditionId, rules, types) {
+  const rule = rules.find(obj => obj.ruleId === ruleId);
 
   if (!rule) return "MISSING_RULE";
 

@@ -49,6 +49,7 @@ class Condition(EmbeddedDocument):
 
 
 class Rule(EmbeddedDocument):
+    ruleId = ObjectIdField(default=ObjectId)
     name = StringField(required=True)
     parameters = ListField(StringField())
     conditions = EmbeddedDocumentListField(Condition)
@@ -310,19 +311,6 @@ class Workflow(Document):
 
             result.append(html)
         return result
-
-    def clean_content(self, conditions):
-        if not self.content:
-            return
-
-        deleteIndexes = []
-        condition_tag_locations = generate_condition_tag_locations(self.content)
-        for condition_id in conditions:
-            deleteIndexes += condition_tag_locations.get(condition_id, [])
-
-        self.content = delete_html_by_indexes(self.content, deleteIndexes)
-        
-        return self.content
 
     def send_email(self):
         workflow_send_email.delay(action_id=str(self.id), job_type="Manual")

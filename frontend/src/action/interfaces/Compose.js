@@ -1,5 +1,4 @@
 import React from "react";
-
 import { Button, Divider, Table, Tooltip, notification } from "antd";
 
 import _ from "lodash";
@@ -55,15 +54,6 @@ class Compose extends React.Component {
     };
   }
 
-  componentDidUpdate(prevProps) {
-    const { action } = this.props;
-
-    if (prevProps.action.rules.length < action.rules.length)
-      this.setState({
-        colours: generateColours(action.rules.length)
-      });
-  }
-
   updateFilter = ({ filter, method, onSuccess, onError }) => {
     const { action, updateAction } = this.props;
 
@@ -81,17 +71,25 @@ class Compose extends React.Component {
     });
   };
 
-  updateRule = ({ rule, ruleIndex, method, onSuccess, onError }) => {
+  updateRule = ({ rule, method, onSuccess, onError }) => {
     const { action, updateAction } = this.props;
 
     apiRequest(`/workflow/${action.id}/rules/`, {
       method,
-      payload: { rule, ruleIndex },
-      onSuccess: action => {
+      payload: { rule },
+      onSuccess: updatedAction => {
         notification["success"]({
           message: `Rule successfully ${methodMap[method]}.`
         });
+
+        if (action.rules.length < updatedAction.rules.length)
+          this.setState({
+            colours: generateColours(updatedAction.rules.length)
+          });
+
         onSuccess();
+        action.rules = updatedAction.rules;
+        action.content = this.newContentEditor.editor.generateHtml();
         updateAction(action);
         // Recreate the content editor component by changing its key
         this.setState({ contentEditorKey: _.uniqueId() });
@@ -221,40 +219,22 @@ class Compose extends React.Component {
                 position={{ x: 0, y: 0 }}
                 onDrag={mouseEvent => {
                   this.setState({
-                    contentEditor: { mouseEvent, ruleIndex: null, isRuleClick: false }
+                    contentEditor: { mouseEvent, rule: null }
                   });
                 }}
                 onStop={e => {
                   // Rule was dragged
                   if (contentEditor && contentEditor.mouseEvent) {
                     this.setState({
-                      contentEditor: { mouseEvent: null, ruleIndex, isRuleClick: false }
+                      contentEditor: { mouseEvent: null, rule }
                     });
-                    // Rule was clicked
                   }
-                  // else {
-                  //   this.setState({
-                  //     querybuilder: {
-                  //       visible: true,
-                  //       type: "rule",
-                  //       selected: rule,
-                  //       onSubmit: ({ rule, method, onSuccess, onError }) =>
-                  //         this.updateRule({
-                  //           rule,
-                  //           ruleIndex,
-                  //           method,
-                  //           onSuccess,
-                  //           onError
-                  //         })
-                  //     }
-                  //   });
-                  // }
                 }}
               >
                 <div
                   style={{
                     display: "inline-block",
-                    marginRight: 5,
+                    margin: "0 5px 5px 0",
                     textAlign: "center",
                     border: "1px solid #d9d9d9",
                     borderRadius: "4px",
@@ -267,7 +247,12 @@ class Compose extends React.Component {
                       style={{
                         width: 9,
                         height: 9,
-                        background: colours[ruleIndex],
+                        background:
+                          colours[
+                            action.rules.findIndex(
+                              obj => obj.ruleId === rule.ruleId
+                            )
+                          ],
                         marginRight: 5,
                         display: "inline-block"
                       }}
@@ -280,14 +265,24 @@ class Compose extends React.Component {
                         icon="edit"
                         size="small"
                         style={{ marginRight: 4 }}
-                        onClick={(e) => {
+                        onClick={e => {
                           this.setState({
                             querybuilder: {
                               visible: true,
                               type: "rule",
                               selected: rule,
-                              onSubmit: ({ rule, method, onSuccess, onError }) =>
-                                this.updateRule({rule, ruleIndex, method, onSuccess, onError})
+                              onSubmit: ({
+                                rule,
+                                method,
+                                onSuccess,
+                                onError
+                              }) =>
+                                this.updateRule({
+                                  rule,
+                                  method,
+                                  onSuccess,
+                                  onError
+                                })
                             }
                           });
                         }}
@@ -297,7 +292,9 @@ class Compose extends React.Component {
                       <Button
                         size="small"
                         icon="plus"
-                        onClick={(e) => {this.newContentEditor.handleRuleClick(ruleIndex, action.rules)}}
+                        onClick={() =>
+                          this.newContentEditor.editor.insertRule(rule)
+                        }
                       />
                     </Tooltip>
                   </div>
@@ -311,7 +308,7 @@ class Compose extends React.Component {
         <h3>Content</h3>
 
         <ContentEditor
-          ref={newContentEditor => this.newContentEditor = newContentEditor}
+          ref={newContentEditor => (this.newContentEditor = newContentEditor)}
           key={contentEditorKey} // Used to force a re-render after updating rules
           {...contentEditor}
           html={_.get(action, "content")}
