@@ -112,7 +112,9 @@ function Rules(options) {
           let label = node.data.get("label");
           if (!label) label = generateLabel(ruleId, conditionId, rules, types);
 
-          const colour = colours[rules.findIndex(obj => obj.ruleId === ruleId)]
+          const colour =
+            !["MISSING_CONDITION", "MISSING_RULE"].includes(label) &&
+            colours[rules.findIndex(obj => obj.ruleId === ruleId)];
 
           return (
             <div
@@ -156,6 +158,8 @@ function generateLabel(ruleId, conditionId, rules, types) {
   const condition = rule.conditions.find(
     condition => condition.conditionId === conditionId
   );
+
+  if (!condition) return "MISSING_CONDITION";
 
   const operatorMap = {
     "==": "="
