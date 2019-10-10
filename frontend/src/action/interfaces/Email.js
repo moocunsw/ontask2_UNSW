@@ -107,7 +107,8 @@ class Email extends React.Component {
               "Upon completion, you will receive an email outlining the job summary"
           });
           this.setState({ sending: false });
-          history.push("/dashboard");
+          const newInterval = setInterval(this.checkEmailStatus, 5000);
+          this.setState({ intervalId: newInterval, emailLocked: true });
         },
         onError: error => this.setState({ sending: false, error })
       });
