@@ -273,7 +273,10 @@ class WorkflowViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=["get"])
     def locked(self, request, id=None):
-        action = ActionSerializer(self.get_object()).data
+        action = self.get_object()
+        self.check_object_permissions(self.request, action)
+
+        action = ActionSerializer(action).data
         return Response(
             {"emailLocked": action["emailLocked"], "emailJobs": action["emailJobs"]}
         )
@@ -412,57 +415,3 @@ class FeedbackView(APIView):
             )
 
         return JsonResponse({"success": 1})
-
-    # # retrive email sending history and generate static page.
-    # @detail_route(methods=["get"])
-    # def retrieve_history(self, request, id=None):
-    #     pipeline = [
-    #         {"$match": {"$and": [{"creator": request.user.email}, {"workflowId": id}]}}
-    #     ]
-
-    #     def json_serial(obj):
-    #         if isinstance(obj, (datetime, date)):
-    #             return obj.strftime("%T %Y/%m/%d")
-    #         if isinstance(obj, ObjectId):
-    #             return str(obj)
-
-    #     audits = list(Audit.objects.aggregate(*pipeline))
-    #     response = {}
-    #     response["data"] = None
-    #     response["columns"] = []
-    #     if audits:
-    #         # will change based on which column we wish to show users
-    #         columns = list(audits[0].keys())[2:-1]
-    #         audits_str = str(dumps(audits, default=json_serial)).replace(
-    #             '"_id":', '"id":'
-    #         )
-    #         response["data"] = json.loads(audits_str)
-    #         response["columns"] = columns
-    #     return JsonResponse(response, safe=False)
-
-    # # search workflow with link_id
-    # @list_route(methods=["post"])
-    # def search_workflow(self, request):
-    #     link_id = self.request.data["link_id"]
-    #     pipeline = [{"$match": {"linkId": link_id}}]
-
-    #     workflow = list(Workflow.objects.aggregate(*pipeline))
-    #     if len(workflow) == 0:
-    #         return JsonResponse({"mismatch": True})
-    #     else:
-    #         return JsonResponse({"workflowId": str(workflow[0]["_id"])}, safe=False)
-
-    # # search specific content for studentwith link_id and student zid
-    # @list_route(methods=["post"])
-    # def search_content(self, request):
-    #     link_id = self.request.data["link_id"]
-    #     zid = self.request.data["zid"]
-    #     try:
-    #         workflow = Workflow.objects.get(linkId=link_id)
-    #     except Workflow.DoesNotExist:
-    #         return JsonResponse({"mismatch": True})
-    #     content = populate_content(workflow, None, zid)
-    #     if content:
-    #         return JsonResponse({"content": content}, safe=False)
-    #     else:
-    #         return JsonResponse({"mismatch": True})
