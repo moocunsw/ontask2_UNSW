@@ -80,7 +80,17 @@ class DiscrepenciesModal extends React.Component {
                 record: record
               }))}
               columns={[
-                { title: "Record", dataIndex: "record", key: "record" }
+                {
+                  title: "Record",
+                  dataIndex: "record",
+                  key: "record",
+                  render: value =>
+                    value ? (
+                      value
+                    ) : (
+                      <span style={{ fontStyle: "italic" }}>NULL</span>
+                    )
+                }
               ]}
             />
 
@@ -117,7 +127,17 @@ class DiscrepenciesModal extends React.Component {
                 record: record
               }))}
               columns={[
-                { title: "Record", dataIndex: "record", key: "record" }
+                {
+                  title: "Record",
+                  dataIndex: "record",
+                  key: "record",
+                  render: value =>
+                    value ? (
+                      value
+                    ) : (
+                      <span style={{ fontStyle: "italic" }}>NULL</span>
+                    )
+                }
               ]}
             />
 
