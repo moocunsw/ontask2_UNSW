@@ -181,7 +181,7 @@ class ContentEditor extends React.Component {
           {this.editor && this.editor.renderMarkButton("code", "Code", "code")}
           {this.editor && this.editor.renderFontFamilySelect()}
           {this.editor && this.editor.renderColorButton()}
-          {<LinkButton editor={this.editor} />}
+          {<LinkButton editor={this.editor} order={order} />}
           <ImageButton editor={this.editor} />
           {this.editor && this.editor.renderBlockButton("heading-one", "Header One", "looks_one")}
           {this.editor && this.editor.renderBlockButton("heading-two", "Header Two", "looks_two")}

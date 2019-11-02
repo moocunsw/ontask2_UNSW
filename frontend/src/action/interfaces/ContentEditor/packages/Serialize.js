@@ -50,6 +50,14 @@ const rules = [
             return <ul>{children}</ul>;
           case "list-item":
             return <li>{children}</li>;
+          case "hyperlink":
+            return (
+              // The below is a hack to ensure param & field attributes are in the DOM element, even if paramName or paramValue are null
+              <hyperlink href={obj.data.get("href")} param={obj.data.get("paramName") || ""} field={obj.data.get("paramValue") || ""}>
+                {children}
+              </hyperlink>
+            );
+          // The below "link" is retained for backwards compatability only
           case "link":
             return (
               <a
@@ -168,10 +176,24 @@ const rules = [
           }
         };
       }
+      if (el.tagName.toLowerCase() === "hyperlink") {
+        return {
+          object: "inline",
+          type: "hyperlink",
+          nodes: next(el.childNodes),
+          data: {
+            href: el.getAttribute("href"),
+            paramName: el.getAttribute("param"),
+            paramValue: el.getAttribute("field")
+          }
+        }
+      }
+      // The below "a" is retained in order to migrate users from the old hyperlink implementation to the new.
+      // When the user saves, the old Slate node type "link" is replaced with the new "hyperlink"
       if (el.tagName.toLowerCase() === "a") {
         return {
           object: "inline",
-          type: "link",
+          type: "hyperlink",
           nodes: next(el.childNodes),
           data: {
             href: el.getAttribute("href")

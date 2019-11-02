@@ -89,7 +89,7 @@ class Email extends React.Component {
   };
 
   handleSubmit = () => {
-    const { form, action, history } = this.props;
+    const { form, action } = this.props;
 
     form.validateFields((err, payload) => {
       if (err) return;

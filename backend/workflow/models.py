@@ -26,6 +26,7 @@ from form.models import Form
 from .utils import (
     did_pass_test,
     parse_attribute,
+    parse_link,
     generate_condition_tag_locations,
     replace_tags,
     strip_tags,
@@ -309,6 +310,7 @@ class Workflow(Document):
             html = strip_tags(html, "condition")
             html = strip_tags(html, "rule")
             html = parse_attribute(html, item, order)
+            html = parse_link(html, item, order)
 
             result.append(html)
         return result
