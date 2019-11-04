@@ -38,15 +38,18 @@ def Dashboard(request):
         context_key = obj[1]
         access_context[f"accessible_{context_key}"] = accessible_objects
 
-    filterIds = [term["id"] for term in request.data]
     if request.user.is_superuser:
-        containers = Container.objects.filter(term__in=filterIds).order_by("code")
+        containers = Container.objects.filter(
+            term__in=request.data.get("terms", [])
+        ).order_by("code")
     else:
         containers = Container.objects.filter(
-            Q(owner=request.user.email)
-            | Q(sharing__contains=request.user.email)
-            | Q(id__in=related_containers)
-            | Q(term__in=filterIds)
+            Q(term__in=request.data.get("terms", []))
+            & (
+                Q(owner=request.user.email)
+                | Q(sharing__contains=request.user.email)
+                | Q(id__in=related_containers)
+            )
         ).order_by("code")
 
     response = []
@@ -68,17 +71,16 @@ def Terms(request):
     """All Terms and Current Terms in Semester using DateTime.now()"""
 
     # All Terms
-    terms = Term.objects.all().order_by("-term_id")
+    terms = Term.objects.all().order_by("-code")
     allTerms = [TermSerializer(term).data for term in terms]
 
     # Current Terms
-    terms = Term.objects.filter(Q(start__lte=dt.utcnow()) & Q(end__gte=dt.utcnow())).order_by("-term_id")
+    terms = Term.objects.filter(
+        Q(start__lte=dt.utcnow()) & Q(end__gte=dt.utcnow())
+    ).order_by("-code")
     currentTerms = [TermSerializer(term).data for term in terms]
 
-    response = {
-        "terms": allTerms,
-        "currentTerms": currentTerms
-    }
+    response = {"terms": allTerms, "currentTerms": currentTerms}
 
     return Response(response)
 

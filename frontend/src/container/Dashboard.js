@@ -50,11 +50,9 @@ class Dashboard extends React.Component {
   fetchDashboard = () => {
     this.setState({ loadingDashboard: true });
 
-    const payload = this.state.currentTerms;
-
     apiRequest(`/dashboard/`, {
       method: "POST",
-      payload,
+      payload: { terms: this.state.currentTerms },
       onSuccess: dashboard => {
         let accordionKey = sessionStorage.getItem("accordionKey");
         let tabKey = sessionStorage.getItem("tabKey");
@@ -86,7 +84,10 @@ class Dashboard extends React.Component {
       method: "GET",
       onSuccess: terms => {
         const storageTerms = localStorage.getItem('currentTerms');
-        if (storageTerms) terms.currentTerms = JSON.parse(storageTerms);
+        terms.currentTerms = storageTerms 
+          ? JSON.parse(storageTerms) 
+          : terms.currentTerms.map(term => term.id);
+
         // terms, currentTerms
         this.setState({
           loadingTerms: false,
@@ -604,8 +605,6 @@ class Dashboard extends React.Component {
       loadingTerms
     } = this.state;
 
-    const termIds = currentTerms.length === 0 ? [] : currentTerms.map(term => term.id);
-
     return (
       <ContainerContext.Provider
         value={{
@@ -650,16 +649,21 @@ class Dashboard extends React.Component {
                     </div>
 
                     <Select
+                      size="large"
                       mode="multiple"
-                      style={{ width: '350px', marginBottom: '20px' }}
-                      placeholder="Select filters"
-                      value={termIds}
+                      style={{
+                        width: "100%",
+                        maxWidth: 500,
+                        marginBottom: "20px"
+                      }}                      
+                      placeholder="Filter by term(s)"
+                      value={currentTerms}
                       onChange={(value) => {
                         const { terms } = this.state;
                         let newCurrentTerms = null;
-                        if (value.includes('_all')) newCurrentTerms = terms;
+                        if (value.includes('_all')) newCurrentTerms = terms.map(term => term.id);
                         else if (value.includes('_none')) newCurrentTerms = [];
-                        else newCurrentTerms = terms.filter(term => value.includes(term.id));
+                        else newCurrentTerms = terms.filter(term => value.includes(term.id)).map(term => term.id);
                         this.setState({ currentTerms: newCurrentTerms }, () => {
                           localStorage.setItem('currentTerms', JSON.stringify(newCurrentTerms));
                           this.fetchDashboard();
@@ -750,12 +754,14 @@ class Dashboard extends React.Component {
                       this.ContainerList()
                     ) : sessionStorage.getItem("group") === "user" ? (
                       <h2>
-                        You have not received any correspondence via OnTask.
+                        You did not receive any correspondence via OnTask in the selected term(s).
                       </h2>
                     ) : (
                       <h2>
                         <Icon type="info-circle-o" className="info_icon" />
-                        Get started by creating your first container or selecting a filter.
+                        {currentTerms.length
+                            ? "Get started by creating your first container."
+                            : "Choose a term to filter and find related containers"}                      
                       </h2>
                     )}
                   </div>

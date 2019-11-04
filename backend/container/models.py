@@ -1,4 +1,4 @@
-from mongoengine import Document, EmbeddedDocument
+from mongoengine import Document
 from mongoengine.fields import (
     ListField,
     StringField,
