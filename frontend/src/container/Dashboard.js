@@ -30,23 +30,29 @@ import apiRequest from "../shared/apiRequest";
 import "./Container.css";
 
 const { Content } = Layout;
+const { Option, OptGroup } = Select;
 const Panel = Collapse.Panel;
 
 class Dashboard extends React.Component {
   state = {
     dashboard: [],
+    loadingDashboard: true,
     container: { visible: false, selected: null },
     sharing: { visible: false, selected: null },
     lti: { visible: false },
     deleting: {},
-    formPermissions: {}
+    formPermissions: {},
+    terms: [],
+    currentTerms: [],
+    loadingTerms: true
   };
 
   fetchDashboard = () => {
-    this.setState({ fetching: true });
+    this.setState({ loadingDashboard: true });
 
     apiRequest(`/dashboard/`, {
-      method: "GET",
+      method: "POST",
+      payload: { terms: this.state.currentTerms },
       onSuccess: dashboard => {
         let accordionKey = sessionStorage.getItem("accordionKey");
         let tabKey = sessionStorage.getItem("tabKey");
@@ -56,7 +62,7 @@ class Dashboard extends React.Component {
 
         this.setState({
           dashboard,
-          fetching: false,
+          loadingDashboard: false,
           accordionKey,
           tabKey
         });
@@ -65,13 +71,51 @@ class Dashboard extends React.Component {
         notification["error"]({
           message: "Failed to fetch dashboard"
         });
-        this.setState({ fetching: false });
+        this.setState({ loadingDashboard: false });
       }
     });
   };
 
+
+  fetchTermsDashboard = () => {
+    this.setState({ loadingTerms: true });
+
+    apiRequest(`/terms/`, {
+      method: "GET",
+      onSuccess: terms => {
+        const storageTerms = localStorage.getItem('currentTerms');
+        terms.currentTerms = storageTerms 
+          ? JSON.parse(storageTerms) 
+          : terms.currentTerms.map(term => term.id);
+
+        // terms, currentTerms
+        this.setState({
+          loadingTerms: false,
+          ...terms
+        }, () => {this.fetchDashboard()});
+      },
+      onError: () => {
+        notification["error"]({
+          message: "Failed to fetch terms"
+        });
+        this.setState({ loadingTerms: false });
+      }
+    })
+  };
+
   componentDidMount() {
-    this.fetchDashboard();
+    this.fetchTermsDashboard();
+    // const currentTerms = localStorage.getItem('currentTerms');
+    // if (currentTerms !== null) {
+    //   this.setState(JSON.parse(termsInfo), () => { this.fetchDashboard() });
+    // }
+    // else {
+    //   this.fetchTermsDashboard();
+    // }
+    // localStorage.setItem('currentTerms', JSON.stringify(newCurrentTerms));
+
+    // this.fetchTerms();
+    // this.fetchDashboard();
   }
 
   componentDidUpdate(prevProps) {
@@ -550,12 +594,15 @@ class Dashboard extends React.Component {
   render() {
     const { history } = this.props;
     const {
-      fetching,
+      loadingDashboard,
       dashboard,
       container,
       sharing,
       lti,
-      accessList
+      accessList,
+      terms,
+      currentTerms,
+      loadingTerms
     } = this.state;
 
     return (
@@ -569,7 +616,7 @@ class Dashboard extends React.Component {
           <Content className="wrapper">
             <Layout className="layout">
               <Content className="content">
-                {fetching ? (
+                {loadingTerms ? (
                   <Spin size="large" />
                 ) : (
                   <div>
@@ -578,6 +625,7 @@ class Dashboard extends React.Component {
                         sessionStorage.getItem("group")
                       ) && (
                         <Button
+                          style={{ minWidth: '170px' }}
                           onClick={() => this.openModal({ type: "container" })}
                           type="primary"
                           icon="plus"
@@ -593,13 +641,54 @@ class Dashboard extends React.Component {
                           type="primary"
                           icon="setting"
                           size="large"
-                          style={{ marginLeft: "10px" }}
+                          style={{ minWidth: '170px', marginLeft: "10px" }}
                         >
                           Administration
                         </Button>
                       )}
                     </div>
 
+                    <Select
+                      size="large"
+                      mode="multiple"
+                      style={{
+                        width: "100%",
+                        maxWidth: 500,
+                        marginBottom: "20px"
+                      }}                      
+                      placeholder="Filter by term(s)"
+                      value={currentTerms}
+                      onChange={(value) => {
+                        const { terms } = this.state;
+                        let newCurrentTerms = null;
+                        if (value.includes('_all')) newCurrentTerms = terms.map(term => term.id);
+                        else if (value.includes('_none')) newCurrentTerms = [];
+                        else newCurrentTerms = terms.filter(term => value.includes(term.id)).map(term => term.id);
+                        this.setState({ currentTerms: newCurrentTerms }, () => {
+                          localStorage.setItem('currentTerms', JSON.stringify(newCurrentTerms));
+                          this.fetchDashboard();
+                        });
+                      }}
+                    >
+                      <OptGroup label="Utilities">
+                        <Option value="_all">Select all</Option>
+                        <Option value="_none">Reset</Option>
+                      </OptGroup>
+                      <OptGroup label="Terms">
+                        {
+                          terms.map((term, i) => (
+                            <Option value={term.id} key={i}>{term.name}</Option>
+                          ))
+                        }
+                      </OptGroup>
+                    </Select>
+                  </div>
+                )}
+
+                {!loadingTerms && (loadingDashboard ? (
+                  <Spin size="large" />
+                ) : (
+                  <div>
                     <ContainerModal
                       {...container}
                       fetchDashboard={this.fetchDashboard}
@@ -609,6 +698,7 @@ class Dashboard extends React.Component {
                         sessionStorage.setItem("tabKey", "datasources");
                       }}
                       closeModal={() => this.closeModal("container")}
+                      terms={terms}
                     />
 
                     <ContainerShare
@@ -660,21 +750,22 @@ class Dashboard extends React.Component {
                         this.setState({ accessList: { visible: false } })
                       }
                     />
-
                     {dashboard.length > 0 ? (
                       this.ContainerList()
                     ) : sessionStorage.getItem("group") === "user" ? (
                       <h2>
-                        You have not received any correspondence via OnTask.
+                        You did not receive any correspondence via OnTask in the selected term(s).
                       </h2>
                     ) : (
                       <h2>
                         <Icon type="info-circle-o" className="info_icon" />
-                        Get started by creating your first container.
+                        {currentTerms.length
+                            ? "Get started by creating your first container."
+                            : "Choose a term to filter and find related containers"}                      
                       </h2>
                     )}
                   </div>
-                )}
+                ))}
               </Content>
             </Layout>
           </Content>

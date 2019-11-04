@@ -1,10 +1,11 @@
 import React from "react";
-import { Modal, Form, Input, Alert, notification } from "antd";
+import { Modal, Form, Input, Select, Alert, notification } from "antd";
 
 import apiRequest from "../shared/apiRequest";
 import formItemLayout from "../shared/FormItemLayout";
 
 const FormItem = Form.Item;
+const Option = Select.Option;
 const { TextArea } = Input;
 
 class ContainerModal extends React.Component {
@@ -54,7 +55,7 @@ class ContainerModal extends React.Component {
   };
 
   render() {
-    const { visible, selected, form } = this.props;
+    const { visible, selected, form, terms } = this.props;
     const { loading, error } = this.state;
 
     const { getFieldDecorator } = form;
@@ -74,6 +75,21 @@ class ContainerModal extends React.Component {
               initialValue: selected ? selected.code : null,
               rules: [{ required: true, message: "Code is required" }]
             })(<Input />)}
+          </FormItem>
+
+          <FormItem {...formItemLayout} label="Term">
+            {getFieldDecorator("term", {
+              initialValue: selected ? selected.term : null,
+              rules: [{ required: true, message: "Term is required" }]
+            })(
+              <Select>
+                {
+                  terms.map((term, i) => (
+                    <Option value={term.id} key={i}>{term.name}</Option>
+                  ))
+                }
+              </Select>
+            )}
           </FormItem>
 
           <FormItem {...formItemLayout} label="School">

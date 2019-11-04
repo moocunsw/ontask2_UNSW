@@ -1,6 +1,10 @@
 .container .info_icon {
   margin-right: 10px;
 }
+.container .ant-select-selection--multiple {
+  max-height: 100px;
+  overflow: auto;
+}
 .container .container_list .header_buttons {
   float: right;
   margin-right: 10px;
