@@ -1,11 +1,26 @@
 from mongoengine import Document, EmbeddedDocument
-from mongoengine.fields import ListField, StringField, IntField, EmbeddedDocumentField
+from mongoengine.fields import (
+    ListField,
+    StringField,
+    IntField,
+    DateTimeField,
+    ReferenceField,
+    BooleanField,
+)
+
+# TODO: Term Fixtures/Data Initialisation?
+class Term(Document):
+    code = IntField(required=True)
+    name = StringField(required=True)
+    start = DateTimeField()
+    end = DateTimeField()
 
 
 class Container(Document):
     owner = StringField()  # User's email
     sharing = ListField(StringField())  # List of user emails
     code = StringField(required=True)
+    term = ReferenceField(Term)
     school = StringField(null=True)
     faculty = StringField(null=True)
     description = StringField(null=True)
