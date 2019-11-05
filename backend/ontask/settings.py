@@ -24,6 +24,7 @@ DATALAB_DUMP_BUCKET = None
 LOG_GROUP = None
 EMAIL_BATCH_SIZE = None
 EMAIL_BATCH_PAUSE = None
+DB_HOST = None
 
 from ontask.env import *
 
@@ -41,12 +42,18 @@ DEBUG = os.environ.get("DJANGO_DEBUG")
 # RabbitMQ served via Docker container (docker-compose)
 CELERY_BROKER_URL = "amqp://rabbitmq"
 
-# MongoDB served via Docker container (docker-compose)
-NOSQL_DATABASE = {"ENGINE": "djongo", "HOST": "db", "NAME": "ontask"}
+# If no DB_HOST in env.py is specified, then it is assumed that MongoDB 
+# is served via Docker container (docker-compose)
 # For the user model via Djongo
-DATABASES = {"default": NOSQL_DATABASE}
+DATABASES = {
+    "default": {
+        "ENGINE": "djongo",
+        "HOST": DB_HOST if DB_HOST else "db",
+        "NAME": "ontask",
+    }
+}
 # For application data via mongoengine
-mongoengine.connect(NOSQL_DATABASE["NAME"], host=NOSQL_DATABASE["HOST"])
+mongoengine.connect("ontask", host=DB_HOST if DB_HOST else "db")
 
 LTI_URL = LTI_CONFIG.get("url")
 if LTI_URL:
