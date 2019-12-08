@@ -25,7 +25,18 @@ import "./Form.css";
 const { Content } = Layout;
 
 class Form extends React.Component {
-  state = { fetching: true, singleRecordIndex: 0, saved: {} };
+  state = {
+    fetching: true,
+    singleRecordIndex: 0,
+    saved: {},
+    filterOptions: {
+      pagination: {},
+      sort: {},
+      filter: [],
+      search: "",
+      groupBy: null
+    },
+  };
 
   componentWillMount() {
     const { match, history } = this.props;
@@ -87,13 +98,17 @@ class Form extends React.Component {
 
           if (field && field.type === "checkbox-group")
             value = _.pick(record, field.columns.map(column => `${field.name}__${column}`));
-
-
+          // console.log(form);
+          // console.log(form.fields);
           // console.log(column); // Column Name
           // console.log(record); // Row Info (Object)
           // console.log(field); // Field Info
           // console.log(value); // Value of the Field (if checkbox, then object)
           // console.log(editable); // Undefined if non editable, otherwise same as field
+
+          // console.log(primary);
+          // console.log(record.item);
+          // console.log(form.primary);
 
           return (
             <Field
@@ -132,6 +147,9 @@ class Form extends React.Component {
               form.is_active &&
               form.editable_records.includes(primary) &&
               field;
+            // console.log(primary);
+            // console.log(record.item);
+            // console.log(form.primary);
 
             if (field && field.type === "checkbox-group")
               value = _.pick(record, field.columns.map(column => `${field.name}__${column}`));
@@ -210,6 +228,11 @@ class Form extends React.Component {
     });
   };
 
+  handleChange = (filterOptions) => {
+    this.setState({filterOptions: filterOptions});
+    // TODO: Serverside filtering using these variables+search as state
+  };
+
   componentWillUnmount() {
     clearTimeout(this.updateSuccess);
   }
@@ -278,7 +301,7 @@ class Form extends React.Component {
     const {
       fetching,
       form,
-      // tableColumns,
+      tableColumns,
       columnNames,
       singleRecordIndex,
       saved,
@@ -293,8 +316,8 @@ class Form extends React.Component {
         ? new Set(form.data.map(item => item[form.groupBy]))
         : [];
 
-    const tableColumns = this.generateColumns(form, columnNames);
-    // console.log(tableColumns);
+    console.log(form);
+
     return (
       <div className="form">
         <Content className="wrapper">
@@ -502,6 +525,7 @@ class Form extends React.Component {
                         ]}
 
                         <ContentTable
+                          form={form}
                           fields={form.fields}
                           columns={tableColumns}
                           dataSource={
@@ -524,6 +548,8 @@ class Form extends React.Component {
                               ? "saved"
                               : "";
                           }}
+                          handleSubmit={this.handleSubmit}
+                          onChange={this.handleChange}
                         />
                       </div>
                     )}

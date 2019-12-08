@@ -1,13 +1,11 @@
 import React from "react";
 import {
-  Table,
   Icon,
   Menu,
   Dropdown,
   Popover,
   Tooltip,
   Button,
-  Input,
   notification,
   Radio,
   Select
@@ -20,23 +18,27 @@ import Details from "../details/Details";
 
 import apiRequest from "../../shared/apiRequest";
 import Field from "../../shared/Field";
-
-const Search = Input.Search;
+import ContentTable from "../../shared/ContentTable";
 
 class Data extends React.Component {
   constructor(props) {
     super(props);
-    const { defaultGroup } = this.props;
+    const { defaultGroup, data } = this.props;
 
     this.state = {
-      sort: {},
       editable: {},
       edit: { field: null, primary: null },
       saved: {},
-      searchTerm: "",
       visualisation: false,
       view: "data",
-      grouping: defaultGroup
+      grouping: defaultGroup,
+      filterOptions: {
+        pagination: {},
+        sort: {},
+        filter: [],
+        search: "",
+        groupBy: null
+      },
     };
   }
 
@@ -171,7 +173,6 @@ class Data extends React.Component {
 
   FormColumns = stepIndex => {
     const { steps, forms } = this.props;
-    // const { sort, edit } = this.state;
     const { edit } = this.state;
 
     const formId = steps[stepIndex]["form"];
@@ -286,11 +287,11 @@ class Data extends React.Component {
         title: <span className="column_header computed">{truncatedLabel}</span>,
         dataIndex: label,
         key: label,
-        sorter: (a, b) => {
-          a = label in a && a[label] !== null ? a[label] : "";
-          b = label in b && b[label] !== null ? b[label] : "";
-          return a.toString().localeCompare(b.toString());
-        },
+        // sorter: (a, b) => {
+        //   a = label in a && a[label] !== null ? a[label] : "";
+        //   b = label in b && b[label] !== null ? b[label] : "";
+        //   return a.toString().localeCompare(b.toString());
+        // },
         render: text => {
           return <Field readOnly field={field} value={text} />;
         }
@@ -328,8 +329,14 @@ class Data extends React.Component {
     });
   };
 
-  handleChange = (pagination, filter, sort) => {
-    this.setState({ filter, sort });
+  handleChange = (filterOptions) => {
+    this.setState({filterOptions: filterOptions});
+    // TODO: Serverside filtering using these variables+search as state
+  };
+
+  updateTableData = (newData) => {
+    const { tableData } = this.state;
+    if (!_.isEqual(newData, tableData)) this.setState({ tableData: newData });
   };
 
   componentWillUnmount() {
@@ -363,11 +370,13 @@ class Data extends React.Component {
       visualisation,
       edit,
       saved,
-      searchTerm,
+      filterOptions,
       view,
       exporting,
       grouping
     } = this.state;
+
+    const { search } = filterOptions;
 
     // Columns are initialised on every render, so that changes to the sort
     // in local state can be reflected in the table columns. Otherwise the
@@ -377,10 +386,10 @@ class Data extends React.Component {
 
     // Similarly, the table data is initialised on every render, so that
     // changes to values in form columns can be reflected
-    const tableData = this.initialiseData(data, searchTerm);
-    const totalDataAmount = data ? data.length : 0;
+    const tableData = this.initialiseData(data, search);
+    // const totalDataAmount = data ? data.length : 0;
 
-    const tableDataAmount = tableData.length;
+    // const tableDataAmount = tableData.length;
 
     const groups = groupBy ? new Set(data.map(item => item[groupBy])) : [];
 
@@ -395,6 +404,8 @@ class Data extends React.Component {
     //       value: _.get(data[0], column.details.label),
     //       item: data[0]
     //     })));
+
+    // console.log(orderedColumns);
 
     return (
       <div className="data" style={{ marginTop: 25 }}>
@@ -450,16 +461,6 @@ class Data extends React.Component {
               </Select>
             )}
 
-            <Search
-              placeholder="Search..."
-              value={searchTerm}
-              onChange={e => this.setState({ searchTerm: e.target.value })}
-              style={{ width: "auto", marginRight: 15 }}
-            />
-            <div>
-              {tableDataAmount} records selected out of {totalDataAmount} (
-              {totalDataAmount - tableDataAmount} filtered out)
-            </div>
           </div>
         ]}
 
@@ -474,7 +475,7 @@ class Data extends React.Component {
           )}
 
           {view === "data" && (
-            <Table
+            <ContentTable
               rowKey={(record, index) => index}
               columns={orderedColumns}
               dataSource={

@@ -1,36 +1,67 @@
-import React, { useState } from "react";
-import { Button, Checkbox, Divider, Dropdown, Icon, Input, Menu, Switch, Table } from "antd";
+import React, { useState, useEffect } from "react";
+import { Checkbox, Divider, Input, Switch, Table } from "antd";
 import _ from "lodash";
+
+import Field from "./Field";
 
 const { Search } = Input;
 
-// TODO: Change Structure of Form Storage
 // TODO: Boolean column named <checkbox_group column>__<checkbox_group group> issue
 // TODO: Custom Filter Selection Close to boundary does not select checkbox
-// TODO: Preview Form Field Changes are reflected in sort,filter,search,etc?
-// TODO: Disable Sorting/Filtering for Fields in DataLAB preview
 
-function initialiseData(data, searchTerm) {
-  if (!data) return [];
+// TODO: Potentially (implement table + vertical view)
+// TODO: Optional Search -> Pass props to callback function in parent
+// TODO: Pagination (Parent) (pagination, search, filters, sort, groupby)
+// TODO: GROUP BY -> Pass props to callback function in parent
+// TODO: EXPORT
 
-  const term = searchTerm.trim().toLowerCase();
+// Manage State with 
 
-  const tableData = (
-    term === ""
-      ? data
-      : data.filter(row =>
-          String(Object.values(row))
-            .toLowerCase()
-            .includes(term)
-        )
-  ).map((row, i) => {return {key: i, ...row}})
+// function initialiseData(data, searchTerm, setTableData) {
+//   if (!data) return [];
 
-  return tableData;
-};
+//   const term = searchTerm.trim().toLowerCase();
+
+//   const tableData = (
+//     term === ""
+//       ? data
+//       : data.filter(row =>
+//           String(Object.values(row))
+//             .toLowerCase()
+//             .includes(term)
+//         )
+//   );
+//   if (setTableData) setTableData(tableData); // Pass Data to parent (Data.js for visualisation)
+
+//   return tableData.map((row, i) => {return {key: i, ...row}})
+// };
+
+// const handleSearch = (e, setSearchTerm, data, setTableData, updateTableData) => {
+//   const searchTerm = e.target.value;
+//   setSearchTerm(searchTerm);
+//   var newTableData;
+
+//   if (!data) newTableData = [];
+//   else {
+//     const term = searchTerm.trim().toLowerCase();
+//     newTableData = (
+//       term === ""
+//         ? data
+//         : data.filter(row =>
+//             String(Object.values(row))
+//               .toLowerCase()
+//               .includes(term)
+//           )
+//     );
+//   }
+//   // console.log(newTableData);
+//   if (updateTableData) updateTableData(newTableData); // Pass Data to parent (Data.js for visualisation)
+//   setTableData(newTableData);
+// }
 
 const initialiseFilterStates = (columns, fields) => {
   const checkboxGroupColumnNames = columns.filter(column => {
-    const fieldItem = fields.find(field => field.name === column.title);
+    const fieldItem = fields && fields.find(field => field.name === column.title);
     return fieldItem && fieldItem.type === "checkbox-group";
   }).map(column => column.dataIndex);
 
@@ -40,51 +71,150 @@ const initialiseFilterStates = (columns, fields) => {
   ];
 };
 
+const renderCheckboxGroupFilter = (props) => {
+  const {
+    setSelectedKeys,
+    selectedKeys,
+    confirm,
+    clearFilters,
+    setFilterModes,
+    filterModes,
+    setCustomFilters,
+    customFilters,
+    columnName,
+    fieldItem,
+  } = props;
+  return (
+    <div>
+      <div style={{ display: 'flex', flexFlow: 'column', alignItems: 'center', borderBottom: '1px solid #e8e8e8', padding: '7px 8px' }}>
+        <p style={{ margin: 0 }}>Filter Mode</p>
+        <Switch
+          checkedChildren="AND"
+          unCheckedChildren="OR"
+          checked={selectedKeys[0]}
+          onChange={(checked) => {
+            let selectedKeyCopy = [...selectedKeys];
+            selectedKeyCopy[0] = checked;
+            setSelectedKeys(selectedKeyCopy);
+          }}
+        />
+      </div>
+      <ul
+        className="ant-dropdown-menu  ant-dropdown-menu-root ant-dropdown-menu-vertical"
+      >
+        {fieldItem.columns.map((filter, i) => (
+          <li
+            className="ant-dropdown-menu-item"
+            key={i}
+          >
+            <Checkbox
+              style={{ width: '100%' }}
+              checked={selectedKeys[i+1]}
+              onChange={(e) => {
+                let selectedKeyCopy = [...selectedKeys];
+                selectedKeyCopy[i+1] = e.target.checked;
+                setSelectedKeys(selectedKeyCopy);
+              }}
+            >
+              {filter}
+            </Checkbox>
+          </li>
+        ))}
+      </ul>
+      <div
+        className="ant-table-filter-dropdown-btns"
+      >
+        <a
+          className="ant-table-filter-dropdown-link confirm"
+          onClick={() => {
+            setFilterModes({...filterModes, [columnName]: !!selectedKeys[0]});
+            setCustomFilters({...customFilters, [columnName]: fieldItem.columns.filter((column, i) => !!selectedKeys[i+1])});
+            confirm();
+          }}
+        >
+          OK
+        </a>
+        <a
+          className="ant-table-filter-dropdown-link clear"
+          onClick={() => {
+            clearFilters();
+            setFilterModes({...filterModes, [columnName]: !!selectedKeys[0]});
+            setCustomFilters({...customFilters, [columnName]: [] });
+            confirm();
+          }}
+        >
+          Reset
+        </a>
+      </div>
+    </div>
+  );
+};
+
 const ContentTable = (props) => {
-  const { columns, dataSource, fields } = props;
+  const { showSearch, columns, dataSource, form, isPreview, handleSubmit, fields, readOnly, onChange } = props;
   const [initialFilters, initialFilterModes] = initialiseFilterStates(columns, fields);
-  const [ searchTerm, setSearchTerm ] = useState("");
+
+  const [ filterOptions, setFilterOptions ] = useState({
+    pagination: {},
+    sort: {},
+    filter: [],
+    search: "",
+    groupBy: null
+  });
+
+  const { search } = filterOptions;
+
+  useEffect(() => {
+    if (onChange) onChange(filterOptions);
+  }, [filterOptions]);
+
   const [ customFilters, setCustomFilters ] = useState(initialFilters);
   const [ filterModes, setFilterModes ] = useState(initialFilterModes);
 
-  const tableData = initialiseData(dataSource, searchTerm);
-  const totalDataAmount = dataSource ? dataSource.length : 0;
-  const tableDataAmount = tableData.length;
+  // const totalDataAmount = dataSource ? dataSource.length : 0;
+  // const tableDataAmount = tableData.length; // TODO: Fix based on filtering as well
 
   const newColumns = columns.map(column => {
-    const columnName = column.title;
-    var { filters, onFilter, sorter } = column;
+    const columnName = column.dataIndex;
+    var { filters, onFilter, sorter, render } = column;
     var customFilter = {};
-    // TODO CHANGE LOGIC
-    if (!filters) {
-      const fieldItem = fields.find(field => field.name === columnName);
-      if (fieldItem) {
+    const fieldItem = fields && fields.find(field => field.name === columnName);
+
+    if (fieldItem) {
+      if (isPreview) {
+        filters = null;
+        sorter = null;
+      }
+      else {
         switch (fieldItem.type) {
           case "text":
           case "number":
           case "date":
             // Remove null values & duplicates
             if (fieldItem.type === "date") {
-              filters = _.uniqBy(tableData.filter(row => row[columnName] != null).map(row => {return {text: row[columnName].slice(0, 10), value: row[columnName]}}), 'value');
+              filters =
+                _.uniqBy(
+                  dataSource
+                    .filter(row => row[columnName] != null)
+                    .map(row => {return {text: row[columnName].slice(0, 10), value: row[columnName]}})
+                , 'value');
             }
             else {
-              filters = _.uniqBy(tableData.filter(row => row[columnName] != null).map(row => {return {text: row[columnName], value: row[columnName]}}), 'value');
-
+              filters =
+                _.uniqBy(
+                  dataSource
+                    .filter(row => row[columnName] != null)
+                    .map(row => {return {text: row[columnName], value: row[columnName]}})
+                , 'value');
             }
             onFilter = (value, record) => record[columnName] && record[columnName] === value;
             sorter = (a, b) => {
               const str_a = String(a[columnName]) || "";
               const str_b = String(b[columnName]) || "";
-              if (str_a === "") {
-                return 1;
-              }
-              else if (str_b === "") {
-                return -1;
-              }
-              else {
-                return str_a.localeCompare(str_b);
-              }
-            }
+              if (str_a === "") return 1;
+              else if (str_b === "") return -1;
+              else return str_a.localeCompare(str_b);
+            };
             break;
           case "list":
             filters = fieldItem.options.map(option => {return {text: option.label, value: option.value}});
@@ -98,83 +228,24 @@ const ContentTable = (props) => {
             break;
           case "checkbox-group":
             customFilter = {
-              filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => (
-                // Render a near-identical antd table filter but with a Switch Component
-                <div>
-                  <div style={{ display: 'flex', flexFlow: 'column', alignItems: 'center', borderBottom: '1px solid #e8e8e8', padding: '7px 8px' }}>
-                    <p style={{ margin: 0 }}>Filter Mode</p>
-                    <Switch
-                      checkedChildren="AND"
-                      unCheckedChildren="OR"
-                      checked={selectedKeys[0]}
-                      onChange={(checked) => {
-                        let selectedKeyCopy = [...selectedKeys];
-                        selectedKeyCopy[0] = checked;
-                        setSelectedKeys(selectedKeyCopy);
-                      }}
-                    />
-                  </div>
-                  <ul
-                    className="ant-dropdown-menu  ant-dropdown-menu-root ant-dropdown-menu-vertical"
-                  >
-                    {fieldItem.columns.map((filter, i) => (
-                      <li
-                        className="ant-dropdown-menu-item"
-                        key={i}
-                      >
-                        <Checkbox
-                          style={{ width: '100%' }}
-                          checked={selectedKeys[i+1]}
-                          onChange={(e) => {
-                            let selectedKeyCopy = [...selectedKeys];
-                            selectedKeyCopy[i+1] = e.target.checked;
-                            setSelectedKeys(selectedKeyCopy);
-                          }}
-                        >
-                          {filter}
-                        </Checkbox>
-                      </li>
-                    ))}
-                  </ul>
-                  <div
-                    className="ant-table-filter-dropdown-btns"
-                  >
-                    <a
-                      className="ant-table-filter-dropdown-link confirm"
-                      onClick={() => {
-                        setFilterModes({...filterModes, [columnName]: !!selectedKeys[0]});
-                        setCustomFilters({...customFilters, [columnName]: fieldItem.columns.filter((column, i) => !!selectedKeys[i+1])});
-                        confirm();
-                      }}
-                    >
-                      OK
-                    </a>
-                    <a
-                      className="ant-table-filter-dropdown-link clear"
-                      onClick={() => {
-                        clearFilters();
-                        setFilterModes({...filterModes, [columnName]: !!selectedKeys[0]});
-                        setCustomFilters({...customFilters, [columnName]: [] });
-                        confirm();
-                      }}
-                    >
-                      Reset
-                    </a>
-                  </div>
-                </div>
-              ),
+              filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) =>
+                renderCheckboxGroupFilter({
+                  setSelectedKeys,
+                  selectedKeys,
+                  confirm,
+                  clearFilters,
+                  setFilterModes,
+                  filterModes,
+                  setCustomFilters,
+                  customFilters,
+                  columnName,
+                  fieldItem,
+                })
             }
-
             onFilter = (value, record) => {
               const filterGroups = customFilters[columnName];
-              if (filterModes[columnName]) {
-                // AND
-                return filterGroups.every(group => record[`${columnName}__${group}`]);
-              }
-              else {
-                // OR
-                return filterGroups.some(group => record[`${columnName}__${group}`]);
-              }
+              if (filterModes[columnName]) return filterGroups.every(group => record[`${columnName}__${group}`]);
+              else return filterGroups.some(group => record[`${columnName}__${group}`]);
             };
             sorter = (a, b) => {
               const count_a = fieldItem.columns.map(column => a[`${columnName}__${column}`]).filter(v => v).length;
@@ -188,20 +259,55 @@ const ContentTable = (props) => {
             break;
         }
       }
-      else {
-        // Non Form Field Item
-        filters = _.uniqBy(tableData.filter(row => row[columnName] != null).map(row => {return {text: row[columnName], value: row[columnName]}}), 'value')
-        onFilter = (value, record) => record[columnName] === value
-      }
     }
+    else {
+      // Non Form Field Item
+      filters =
+        _.uniqBy(
+          dataSource
+            .filter(row => row[columnName] != null)
+            .map(row => {return {text: row[columnName], value: row[columnName]}})
+        , 'value');
+      onFilter = (value, record) => record[columnName] === value;
+      sorter = (a, b) => String(a[columnName] || "").localeCompare(String(b[columnName] || ""));
+    }
+    render = (value, record, index) => {
+      if (fieldItem && fieldItem.type === "checkbox-group")
+        value = _.pick(record, fieldItem.columns.map(column => `${fieldItem.name}__${column}`));
+
+      const editable =
+        !readOnly && fieldItem && ( !form || (
+          form &&
+          form.is_active &&
+          form.editable_records.includes(_.get(record, form.primary))
+        ));
+
+      return (
+        <Field
+          // primaryKey={}
+          readOnly={!editable}
+          field={fieldItem}
+          value={value}
+          onSave={(value, column) =>
+            handleSubmit && handleSubmit(
+              record[form.primary],
+              column ? column : fieldItem.name,
+              value,
+              index,
+              fieldItem.name
+            )
+          }
+        />
+      );
+    };
     return {
       ...customFilter,
-      title: columnName,
-      dataIndex: column.dataIndex,
+      title: column.title,
+      dataIndex: columnName,
       filters: filters,
       onFilter: onFilter,
       sorter: sorter,
-      render: column.render
+      render: render
       // key: column.key // This breaks the onFilter
     }
   });
@@ -209,7 +315,7 @@ const ContentTable = (props) => {
   // console.log(newColumns);
   // console.log(fields);
   // console.log(dataSource);
-  console.log(tableData);
+  // console.log(dataSource);
 
 
   return (
@@ -218,16 +324,21 @@ const ContentTable = (props) => {
         <Search
           style={{ width: "auto", marginRight: '15px' }}
           placeholder="Search..."
-          value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
+          value={search}
+          onChange={(e) => setFilterOptions({...filterOptions, search: e.target.value})}
         />
-        <div>
+        {/* <div>
           {tableDataAmount} records selected out of {totalDataAmount} (
           {totalDataAmount - tableDataAmount} filtered out)
-        </div>
+        </div> */}
       </div>
       <Divider />
-      <Table {...props} columns={newColumns} dataSource={tableData} />
+      <Table
+        {...props}
+        columns={newColumns}
+        dataSource={dataSource}
+        onChange={(pagination, filter, sort) => {setFilterOptions({...filterOptions, pagination: pagination, filter: filter, sort: sort})}}
+      />
     </div>
   );
 };
