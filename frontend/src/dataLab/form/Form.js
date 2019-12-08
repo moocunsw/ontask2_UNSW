@@ -281,17 +281,17 @@ class DataLabForm extends React.Component {
         title: column,
         dataIndex: column,
         key: columnIndex,
-        sorter: (a, b) => (a[column] || "").localeCompare(b[column] || ""),
-        render: (text, record) => {
-          const field = (fields || []).find(field => field.name === column);
-          let value = column in record ? text : null;
+        // sorter: (a, b) => (a[column] || "").localeCompare(b[column] || ""),
+        // render: (text, record) => {
+        //   const field = (fields || []).find(field => field.name === column);
+        //   let value = column in record ? text : null;
 
-          if (field && field.type === "checkbox-group")
-            value = _.pick(record, field.columns.map(column => `${field.name}__${column}`));
+        //   if (field && field.type === "checkbox-group")
+        //     value = _.pick(record, field.columns.map(column => `${field.name}__${column}`));
 
-          return <Field readOnly={!field} field={field} value={value} />;
+        //   return <Field readOnly={!field} field={field} value={value} />;
         }
-      }));
+      ));
 
       return (
         <div>
@@ -347,7 +347,7 @@ class DataLabForm extends React.Component {
 
             if (field && field.type === "checkbox-group")
               value = _.pick(record, field.columns.map(column => `${field.name}__${column}`));
-
+            console.log(record.item);
             return (
               <Field
                 primaryKey={_.get(record.item, primary)} // Force re-render of the field component after changing the selected record
