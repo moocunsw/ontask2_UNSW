@@ -134,12 +134,11 @@ def workflow_send_email(action_id=None, job_type="Scheduled", **kwargs):
                 "total": len(email_batches),
             },
         )
-        # Conditionally use get_connection() based on ENV variables
-        with ExitStack() as stack:
-            if not os.environ.get("ONTASK_DEVELOPMENT"):
-                # Open a connection to the SMTP server, which will be used for every email sent in this batch
-                # It is done per batch to avoid the risk of the connection timing out if the batch_delay is long
-                connection = stack.enter_context(get_connection())
+
+        # Open a connection to the SMTP server, which will be used for every email sent in this batch
+        # It is done per batch to avoid the risk of the connection timing out if the batch_delay is long
+        with get_connection() as connection:
+
             for index, item in enumerate(batch):
                 recipient = item.get(email_settings.field)
                 if recipient == "" or recipient is None:
