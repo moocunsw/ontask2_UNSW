@@ -4,6 +4,12 @@ import time
 from collections import defaultdict
 import jwt
 
+from ontask.settings import (
+    SECRET_KEY,
+    BACKEND_DOMAIN,
+    FRONTEND_DOMAIN
+)
+
 def transform(value, param_type):
     try:
         if param_type == "number":
@@ -77,45 +83,61 @@ def parse_link(html, item, order):
         html
     )
 
-def replace_attribute(match, item, order):
+def replace_attribute(match, item, order, forms, email):
     """Generates new HTML replacement string for attribute with the attribute value and mark styles"""
     field = match.group(2)
-    value = item.get(field)
 
-    for item in order:
-        if item["details"]["label"] == field:
-            if item["details"]["field_type"] == "checkbox":
-                value = value if value else "False"
+    prefix, field = field.split(":",1)
+    print(prefix,field)
+    if prefix == 'link':
+        if email is not None:
+            form_id = forms.filter(name=field)[0].id
+            # Get Form ID from Field
 
-            elif item["details"]["field_type"] == "list":
-                if not isinstance(value, list):
-                    value = [value]
+            token = jwt.encode({'email': email}, SECRET_KEY, algorithm='HS256')
+            link = f'{FRONTEND_DOMAIN}/form/{form_id}/?email={token}'
+            return link
+    elif prefix == 'field':
+        value = item.get(field)
 
-                mapping = {
-                    option["value"]: option["label"]
-                    for option in item["details"]["options"]
-                }
-                value = [mapping.get(value, "") for value in value]
+        for item in order:
+            if item["details"]["label"] == field:
+                if item["details"]["field_type"] == "checkbox":
+                    value = value if value else "False"
 
-        elif field in item["details"].get("fields", []):
-            value = "False" if not value else value
+                elif item["details"]["field_type"] == "list":
+                    if not isinstance(value, list):
+                        value = [value]
 
-    if isinstance(value, list):
-        value = ", ".join(value if value else "")
-    elif not isinstance(value, str):
-        value = str(value)
+                    mapping = {
+                        option["value"]: option["label"]
+                        for option in item["details"]["options"]
+                    }
+                    value = [mapping.get(value, "") for value in value]
 
-    return match.group(1) + value + match.group(3)
+            elif field in item["details"].get("fields", []):
+                value = "False" if not value else value
 
-def parse_attribute(html, item, order):
+        if isinstance(value, list):
+            value = ", ".join(value if value else "")
+        elif not isinstance(value, str):
+            value = str(value)
+
+        return match.group(1) + value + match.group(3)
+    else:
+        # Code should not reach here
+        print("Bad Code")
+        return ''
+
+def parse_attribute(html, item, order, forms, email):
     """
     Parse <attribute>field: ... </attribute> in html string based on student.
     Only checks for
         - bold,italic,underline,code,span inlines and may need to be modified
     """
     return re.sub(
-        r"<attribute>((?:<(?:strong|em|u|pre|code|span.*?)>)*)field:(.*?)((?:</(?:strong|em|u|pre|code|span)>)*)</attribute>",
-        lambda match: replace_attribute(match, item, order),
+        r"<attribute>((?:<(?:strong|em|u|pre|code|span.*?)>)*)(.*?)((?:</(?:strong|em|u|pre|code|span)>)*)</attribute>",
+        lambda match: replace_attribute(match, item, order, forms, email),
         html
     )
 
