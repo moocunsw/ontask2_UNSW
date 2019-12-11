@@ -12,10 +12,10 @@ function Attribute(options) {
       return () => editor.removeNodeByKey(node.key)
     },
     queries: {
-      renderAttributeButton(editor, order) {
+      renderAttributeButton(editor, items, prefix, placeholder) {
         return (
           <Select
-            placeholder="Add a field"
+            placeholder={placeholder}
             size="small"
             value={undefined}
             onChange={field => {
@@ -31,8 +31,8 @@ function Attribute(options) {
             className="attribute_select"
             dropdownMatchSelectWidth={false}
           >
-            {order.map((item, i) => (
-              <Select.Option value={item} key={i}>
+            {items.map((item, i) => (
+              <Select.Option value={`${prefix}:${item}`} key={i}>
                 {item}
               </Select.Option>
             ))}
