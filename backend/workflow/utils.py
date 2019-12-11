@@ -2,6 +2,7 @@ import re
 from dateutil import parser
 import time
 from collections import defaultdict
+import jwt
 
 def transform(value, param_type):
     try:
@@ -75,6 +76,7 @@ def parse_link(html, item, order):
         lambda match: replace_link(match, item, order),
         html
     )
+
 def replace_attribute(match, item, order):
     """Generates new HTML replacement string for attribute with the attribute value and mark styles"""
     field = match.group(2)
@@ -107,12 +109,12 @@ def replace_attribute(match, item, order):
 
 def parse_attribute(html, item, order):
     """
-    Parse <attribute> ... </attribute> in html string based on student.
+    Parse <attribute>field: ... </attribute> in html string based on student.
     Only checks for
         - bold,italic,underline,code,span inlines and may need to be modified
     """
     return re.sub(
-        r"<attribute>((?:<(?:strong|em|u|pre|code|span.*?)>)*)(.*?)((?:</(?:strong|em|u|pre|code|span)>)*)</attribute>",
+        r"<attribute>((?:<(?:strong|em|u|pre|code|span.*?)>)*)field:(.*?)((?:</(?:strong|em|u|pre|code|span)>)*)</attribute>",
         lambda match: replace_attribute(match, item, order),
         html
     )

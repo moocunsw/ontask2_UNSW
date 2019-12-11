@@ -137,6 +137,14 @@ class Workflow(Document):
     def datalab_name(self):
         return self.datalab.name
 
+
+    @property
+    def form_names(self):
+        # return self.datalab.name
+        forms = Form.objects.filter(datalab=self.datalab)
+        return [form.name for form in forms]
+
+
     @property
     def options(self):
         modules = []
@@ -314,6 +322,20 @@ class Workflow(Document):
 
             result.append(html)
         return result
+
+    def parse_form_links(self, html):
+        """
+        Parse <attribute>link: ... </attribute> in html string based on student.
+        Only checks for
+            - bold,italic,underline,code,span inlines and may need to be modified
+        """
+        attribute_link_pattern = r"<attribute>((?:<(?:strong|em|u|pre|code|span.*?)>)*)link:(.*?)((?:</(?:strong|em|u|pre|code|span)>)*)</attribute>"
+
+        links = []
+        for match in re.findall(attribute_link_pattern, html):
+            for item in match:
+                if item in self.form_names: links.append(item)
+        return links
 
     def send_email(self):
         workflow_send_email.delay(action_id=str(self.id), job_type="Manual")
