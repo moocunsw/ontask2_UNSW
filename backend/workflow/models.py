@@ -296,6 +296,15 @@ class Workflow(Document):
 
         condition_ids = list(set(re.findall(r"conditionid=\"(.*?)\"", content)))
         condition_tag_locations = generate_condition_tag_locations(content)
+        email_settings = self.emailSettings
+        forms = Form.objects.filter(datalab=self.datalab)
+
+        print(email_settings)
+        if email_settings is not None:
+            email_field = email_settings.field
+        else:
+            email_field = None
+            # TODO: Require Supply Email Field?
         """
         Generate HTML string for each student based on conditions and attributes
         Algo:
@@ -304,7 +313,9 @@ class Workflow(Document):
             - Perform the iterative deletion
         2. Clean the HTML (replace <attribute>, <condition>, <rule>) to actual HTML tags
         """
+        print(filtered_data)
         for item_index, item in enumerate(filtered_data):
+            email = item[email_field] if email_field is not None else None
             html = content
 
             # 1
@@ -317,25 +328,11 @@ class Workflow(Document):
             # 2
             html = strip_tags(html, "condition")
             html = strip_tags(html, "rule")
-            html = parse_attribute(html, item, order)
+            html = parse_attribute(html, item, order, forms, email)
             html = parse_link(html, item, order)
 
             result.append(html)
         return result
-
-    def parse_form_links(self, html):
-        """
-        Parse <attribute>link: ... </attribute> in html string based on student.
-        Only checks for
-            - bold,italic,underline,code,span inlines and may need to be modified
-        """
-        attribute_link_pattern = r"<attribute>((?:<(?:strong|em|u|pre|code|span.*?)>)*)link:(.*?)((?:</(?:strong|em|u|pre|code|span)>)*)</attribute>"
-
-        links = []
-        for match in re.findall(attribute_link_pattern, html):
-            for item in match:
-                if item in self.form_names: links.append(item)
-        return links
 
     def send_email(self):
         workflow_send_email.delay(action_id=str(self.id), job_type="Manual")
