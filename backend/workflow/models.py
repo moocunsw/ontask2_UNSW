@@ -299,7 +299,6 @@ class Workflow(Document):
         email_settings = self.emailSettings
         forms = Form.objects.filter(datalab=self.datalab)
 
-        print(email_settings)
         if email_settings is not None:
             email_field = email_settings.field
         else:
@@ -313,7 +312,6 @@ class Workflow(Document):
             - Perform the iterative deletion
         2. Clean the HTML (replace <attribute>, <condition>, <rule>) to actual HTML tags
         """
-        print(filtered_data)
         for item_index, item in enumerate(filtered_data):
             email = item[email_field] if email_field is not None else None
             html = content

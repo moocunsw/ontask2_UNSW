@@ -15,6 +15,7 @@ import {
   notification
 } from "antd";
 import _ from "lodash";
+import queryString from 'query-string';
 
 import apiRequest from "../shared/apiRequest";
 import Field from "../shared/Field";
@@ -29,7 +30,17 @@ class Form extends React.Component {
   componentDidMount() {
     const { match, history } = this.props;
 
-    apiRequest(`/form/${match.params.id}/access/`, {
+    const params = queryString.parse(history.location.search);
+
+    let url;
+    if ('token' in params) {
+      url = `/form/${match.params.id}/access/${params.token}/`
+    }
+    else {
+      url = `/form/${match.params.id}/access/`;
+    }
+
+    apiRequest(url, {
       method: "GET",
       onSuccess: form => {
         const columnNames = [
