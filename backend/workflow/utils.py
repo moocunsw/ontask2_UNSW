@@ -88,14 +88,13 @@ def replace_attribute(match, item, order, forms, email):
     field = match.group(2)
 
     prefix, field = field.split(":",1)
-    print(prefix,field)
     if prefix == 'link':
         if email is not None:
             form_id = forms.filter(name=field)[0].id
             # Get Form ID from Field
 
-            token = jwt.encode({'email': email}, SECRET_KEY, algorithm='HS256')
-            link = f'{FRONTEND_DOMAIN}/form/{form_id}/?email={token}'
+            token = jwt.encode({'email': email}, SECRET_KEY, algorithm='HS256').decode()
+            link = f'{FRONTEND_DOMAIN}/form/{form_id}/?token={token}'
             return link
     elif prefix == 'field':
         value = item.get(field)

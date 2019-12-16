@@ -18,6 +18,9 @@ from datalab.utils import get_relations
 from datalab.models import Datalab, Column
 from datalab.serializers import DatalabSerializer
 
+from jwt import decode
+from ontask.settings import SECRET_KEY
+
 import logging
 
 logger = logging.getLogger("ontask")
@@ -144,7 +147,7 @@ class DetailForm(APIView):
 
 
 class AccessForm(APIView):
-    def get_data(self, id):
+    def get_data(self, id, token):
         try:
             form = Form.objects.get(id=id)
         except:
@@ -156,6 +159,22 @@ class AccessForm(APIView):
 
         has_full_permission = form.container.has_full_permission(self.request.user)
         user_values = []
+
+        print(has_full_permission)
+        print(accessible_records)
+        print(vars(form))
+        print(token)
+
+        if token is not None:
+            try:
+                decrypted_token = decode(token, SECRET_KEY, algorithm='HS256')
+                print(decrypted_token)
+            except:
+                # TODO: Valid Error Handle for invalid token
+                print("Error")
+                raise PermissionDenied()
+
+            # TODO....
 
         if has_full_permission:
             editable_records = accessible_records.index.values
@@ -236,8 +255,8 @@ class AccessForm(APIView):
 
         return [form, data, editable_records, default_group]
 
-    def get(self, request, id):
-        [form, data, editable_records, default_group] = self.get_data(id)
+    def get(self, request, id, token=None):
+        [form, data, editable_records, default_group] = self.get_data(id, token)
 
         serializer = RestrictedFormSerializer(
             form,
