@@ -95,7 +95,9 @@ def replace_attribute(match, item, order, forms, email):
 
             token = jwt.encode({'email': email}, SECRET_KEY, algorithm='HS256').decode()
             link = f'{FRONTEND_DOMAIN}/form/{form_id}/?token={token}'
-            return link
+
+            link_html = f'<a href={link}>{link}</a>'
+            return link_html
     elif prefix == 'field':
         value = item.get(field)
 
@@ -125,7 +127,6 @@ def replace_attribute(match, item, order, forms, email):
         return match.group(1) + value + match.group(3)
     else:
         # Code should not reach here
-        print("Bad Code")
         return ''
 
 def parse_attribute(html, item, order, forms, email):
