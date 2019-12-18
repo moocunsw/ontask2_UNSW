@@ -4,7 +4,7 @@ from rest_framework.status import HTTP_201_CREATED, HTTP_200_OK
 from rest_framework.views import APIView
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import PermissionDenied, ValidationError
-from rest_framework.permissions import IsAdminUser
+from rest_framework.permissions import AllowAny, IsAdminUser
 
 import pandas as pd
 from datetime import datetime as dt
@@ -147,6 +147,8 @@ class DetailForm(APIView):
 
 
 class AccessForm(APIView):
+    permission_classes = (AllowAny,)
+
     def get_data(self, id, token):
         try:
             form = Form.objects.get(id=id)
@@ -157,24 +159,26 @@ class AccessForm(APIView):
             form.primary
         )
 
-        has_full_permission = form.container.has_full_permission(self.request.user)
         user_values = []
 
-        print(has_full_permission)
         print(accessible_records)
+        print(accessible_records.info())
         print(vars(form))
         print(token)
 
-        if token is not None:
+        # Get User Email from logged in user or jwt token
+        if self.request.user.is_authenticated:
+            email = self.request.user.email.lower()
+            has_full_permission = form.container.has_full_permission(self.request.user)
+        elif token is not None:
+            has_full_permission = False
             try:
                 decrypted_token = decode(token, SECRET_KEY, algorithm='HS256')
-                print(decrypted_token)
+                email = decrypted_token['email'].lower()
             except:
-                # TODO: Valid Error Handle for invalid token
-                print("Error")
                 raise PermissionDenied()
-
-            # TODO....
+        else:
+            raise PermissionDenied()
 
         if has_full_permission:
             editable_records = accessible_records.index.values
@@ -183,7 +187,7 @@ class AccessForm(APIView):
             )
         else:
             if form.emailAccess:
-                user_values.append(self.request.user.email.lower())
+                user_values.append(email)
             if form.ltiAccess:
                 try:
                     lti_object = lti.objects.get(user=self.request.user.id)
@@ -253,10 +257,10 @@ class AccessForm(APIView):
         ):
             editable_records = []
 
-        return [form, data, editable_records, default_group]
+        return [form, data, editable_records, default_group, email]
 
     def get(self, request, id, token=None):
-        [form, data, editable_records, default_group] = self.get_data(id, token)
+        [form, data, editable_records, default_group, email] = self.get_data(id, token)
 
         serializer = RestrictedFormSerializer(
             form,
@@ -267,12 +271,12 @@ class AccessForm(APIView):
             },
         )
 
-        logger.info("form.access", extra={"id": id, "user": request.user.email})
+        logger.info("form.access", extra={"id": id, "user": email})
 
         return Response(serializer.data)
 
-    def patch(self, request, id):
-        [form, data, editable_records, default_group] = self.get_data(id)
+    def patch(self, request, id, token=None):
+        [form, data, editable_records, default_group, email] = self.get_data(id, token)
 
         primary = request.data.get("primary")
         if primary not in editable_records:
@@ -306,7 +310,7 @@ class AccessForm(APIView):
 
         logger.info(
             "form.input",
-            extra={"id": id, "user": request.user.email, "payload": request.data},
+            extra={"id": id, "user": email, "payload": request.data},
         )
 
         return Response(status=HTTP_200_OK)
