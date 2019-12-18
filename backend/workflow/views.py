@@ -16,15 +16,7 @@ import base64
 import jwt
 
 from .serializers import ActionSerializer
-from .models import (
-    Workflow,
-    EmailSettings,
-    EmailJob,
-    Email,
-    Rule,
-    Filter,
-    Schedule,
-)
+from .models import Workflow, EmailSettings, EmailJob, Email, Rule, Filter, Schedule
 from .permissions import WorkflowPermissions
 
 from container.models import Container
@@ -127,7 +119,6 @@ class WorkflowViewSet(viewsets.ModelViewSet):
         self.check_object_permissions(request, action)
 
         rule = request.data.get("rule")
-        rule_index = request.data.get("ruleIndex")
 
         if request.method == "POST":
             action.rules += [Rule(**rule)]  # Add to end of list
@@ -139,36 +130,50 @@ class WorkflowViewSet(viewsets.ModelViewSet):
 
         elif request.method == "PUT":
             updated_rule = Rule(**rule)
-            old_rule = action.rules[rule_index]
 
-            updated_rule_conditions = {
-                str(condition.conditionId) for condition in updated_rule.conditions
-            }
-            old_rule_conditions = {
-                str(condition.conditionId) for condition in old_rule.conditions
-            }
-            deleted_conditions = old_rule_conditions - updated_rule_conditions
+            for i, old_rule in enumerate(action.rules):
+                if not str(old_rule.ruleId) == rule["ruleId"]:
+                    continue
 
-            action.content = action.clean_content(deleted_conditions)
-            action.rules[rule_index] = updated_rule
+                updated_rule_conditions = {
+                    str(condition.conditionId) for condition in updated_rule.conditions
+                }
+                old_rule_conditions = {
+                    str(condition.conditionId) for condition in old_rule.conditions
+                }
 
-            logger.info(
-                "action.update_rule",
-                extra={"user": self.request.user.email, "payload": self.request.data},
-            )
+                deleted_conditions = old_rule_conditions - updated_rule_conditions
+
+                action.rules[i] = updated_rule
+
+                logger.info(
+                    "action.update_rule",
+                    extra={
+                        "user": self.request.user.email,
+                        "payload": self.request.data,
+                    },
+                )
+                break
 
         elif request.method == "DELETE":
-            rule = action.rules[rule_index]
-            deleted_conditions = [
-                str(condition.conditionId) for condition in rule.conditions
-            ] + [str(rule.catchAll)]
-            action.content = action.clean_content(deleted_conditions)
-            del action.rules[rule_index]
+            for i, old_rule in enumerate(action.rules):
+                if not str(old_rule.ruleId) == rule["ruleId"]:
+                    continue
 
-            logger.info(
-                "action.delete_rule",
-                extra={"user": self.request.user.email, "payload": self.request.data},
-            )
+                deleted_conditions = [
+                    str(condition.conditionId) for condition in old_rule.conditions
+                ] + [str(old_rule.catchAll)]
+
+                del action.rules[i]
+
+                logger.info(
+                    "action.delete_rule",
+                    extra={
+                        "user": self.request.user.email,
+                        "payload": self.request.data,
+                    },
+                )
+                break
 
         action.save()
 
@@ -255,6 +260,8 @@ class WorkflowViewSet(viewsets.ModelViewSet):
         if not action.content:
             raise ValidationError("Email content cannot be empty.")
 
+        action.emailLocked = True
+        action.save()
         action.send_email()
 
         logger.info(
@@ -263,6 +270,16 @@ class WorkflowViewSet(viewsets.ModelViewSet):
         )
 
         return Response({"success": "true"})
+
+    @detail_route(methods=["get"])
+    def locked(self, request, id=None):
+        action = self.get_object()
+        self.check_object_permissions(self.request, action)
+
+        action = ActionSerializer(action).data
+        return Response(
+            {"emailLocked": action["emailLocked"], "emailJobs": action["emailJobs"]}
+        )
 
     @list_route(methods=["get"], permission_classes=[AllowAny])
     def read_receipt(self, request):
@@ -316,8 +333,7 @@ class WorkflowViewSet(viewsets.ModelViewSet):
         serializer.save()
 
         logger.info(
-            "action.clone",
-            extra={"user": self.request.user.email, "action": str(id)},
+            "action.clone", extra={"user": self.request.user.email, "action": str(id)}
         )
 
         return Response(status=HTTP_200_OK)
@@ -399,57 +415,3 @@ class FeedbackView(APIView):
             )
 
         return JsonResponse({"success": 1})
-
-    # # retrive email sending history and generate static page.
-    # @detail_route(methods=["get"])
-    # def retrieve_history(self, request, id=None):
-    #     pipeline = [
-    #         {"$match": {"$and": [{"creator": request.user.email}, {"workflowId": id}]}}
-    #     ]
-
-    #     def json_serial(obj):
-    #         if isinstance(obj, (datetime, date)):
-    #             return obj.strftime("%T %Y/%m/%d")
-    #         if isinstance(obj, ObjectId):
-    #             return str(obj)
-
-    #     audits = list(Audit.objects.aggregate(*pipeline))
-    #     response = {}
-    #     response["data"] = None
-    #     response["columns"] = []
-    #     if audits:
-    #         # will change based on which column we wish to show users
-    #         columns = list(audits[0].keys())[2:-1]
-    #         audits_str = str(dumps(audits, default=json_serial)).replace(
-    #             '"_id":', '"id":'
-    #         )
-    #         response["data"] = json.loads(audits_str)
-    #         response["columns"] = columns
-    #     return JsonResponse(response, safe=False)
-
-    # # search workflow with link_id
-    # @list_route(methods=["post"])
-    # def search_workflow(self, request):
-    #     link_id = self.request.data["link_id"]
-    #     pipeline = [{"$match": {"linkId": link_id}}]
-
-    #     workflow = list(Workflow.objects.aggregate(*pipeline))
-    #     if len(workflow) == 0:
-    #         return JsonResponse({"mismatch": True})
-    #     else:
-    #         return JsonResponse({"workflowId": str(workflow[0]["_id"])}, safe=False)
-
-    # # search specific content for studentwith link_id and student zid
-    # @list_route(methods=["post"])
-    # def search_content(self, request):
-    #     link_id = self.request.data["link_id"]
-    #     zid = self.request.data["zid"]
-    #     try:
-    #         workflow = Workflow.objects.get(linkId=link_id)
-    #     except Workflow.DoesNotExist:
-    #         return JsonResponse({"mismatch": True})
-    #     content = populate_content(workflow, None, zid)
-    #     if content:
-    #         return JsonResponse({"content": content}, safe=False)
-    #     else:
-    #         return JsonResponse({"mismatch": True})

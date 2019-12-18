@@ -26,8 +26,10 @@ from form.models import Form
 from .utils import (
     did_pass_test,
     parse_attribute,
+    parse_link,
     generate_condition_tag_locations,
     replace_tags,
+    strip_tags,
     delete_html_by_indexes
 )
 from scheduler.tasks import workflow_send_email
@@ -49,6 +51,7 @@ class Condition(EmbeddedDocument):
 
 
 class Rule(EmbeddedDocument):
+    ruleId = ObjectIdField(default=ObjectId)
     name = StringField(required=True)
     parameters = ListField(StringField())
     conditions = EmbeddedDocumentListField(Condition)
@@ -123,11 +126,12 @@ class Workflow(Document):
     description = StringField(null=True)
     filter = EmbeddedDocumentField(Filter)
     rules = EmbeddedDocumentListField(Rule)
-    content = StringField()
+    content = StringField(default="")
     emailSettings = EmbeddedDocumentField(EmailSettings)
     schedule = EmbeddedDocumentField(Schedule, null=True, required=False)
     linkId = StringField(null=True)  # link_id is unique across workflow objects
     emailJobs = EmbeddedDocumentListField(EmailJob)
+    emailLocked = BooleanField(default=False)
 
     @property
     def datalab_name(self):
@@ -290,7 +294,7 @@ class Workflow(Document):
         1. Delete condition blocks that do not match the student attributes
             - Get a list of deleteIndexes of (start,stop) slices of condition tags to delete
             - Perform the iterative deletion
-        2. Clean the HTML (replace <attribute>, <condition>, <cwrapper>) to actual HTML tags
+        2. Clean the HTML (replace <attribute>, <condition>, <rule>) to actual HTML tags
         """
         for item_index, item in enumerate(filtered_data):
             html = content
@@ -303,27 +307,13 @@ class Workflow(Document):
             html = delete_html_by_indexes(html, deleteIndexes)
 
             # 2
-            html = replace_tags(html, "condition", "div")
-            html = replace_tags(html, "cwrapper", "div")
+            html = strip_tags(html, "condition")
+            html = strip_tags(html, "rule")
             html = parse_attribute(html, item, order)
+            html = parse_link(html, item, order)
 
             result.append(html)
         return result
-
-    def clean_content(self, conditions):
-        if not self.content:
-            return
-
-        blocks = self.content["blockMap"]["document"]["nodes"]
-        new_blocks = list(
-            filter(
-                lambda block: block["data"].get("conditionId") not in conditions, blocks
-            )
-        )
-
-        self.content["blockMap"]["document"]["nodes"] = new_blocks
-
-        return self.content
 
     def send_email(self):
         workflow_send_email.delay(action_id=str(self.id), job_type="Manual")

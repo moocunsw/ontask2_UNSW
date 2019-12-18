@@ -12,6 +12,7 @@ import boto3
 import pandas as pd
 from io import StringIO
 import os
+from contextlib import ExitStack
 
 from datasource.models import Datasource
 from administration.models import Dump
@@ -133,15 +134,16 @@ def workflow_send_email(action_id=None, job_type="Scheduled", **kwargs):
                 "total": len(email_batches),
             },
         )
-
-        # Open a connection to the SMTP server, which will be used for every email sent in this batch
-        # It is done per batch to avoid the risk of the connection timing out if the batch_delay is long
-        with get_connection() as connection:
-
+        # Conditionally use get_connection() based on ENV variables
+        with ExitStack() as stack:
+            if not os.environ.get("ONTASK_DEVELOPMENT"):
+                # Open a connection to the SMTP server, which will be used for every email sent in this batch
+                # It is done per batch to avoid the risk of the connection timing out if the batch_delay is long
+                connection = stack.enter_context(get_connection())
             for index, item in enumerate(batch):
                 recipient = item.get(email_settings.field)
                 if recipient == "" or recipient is None:
-                    null_recipients = +1
+                    null_recipients += 1
                 else:
                     email_content = populated_content[recipient_count]
 
@@ -210,6 +212,8 @@ def workflow_send_email(action_id=None, job_type="Scheduled", **kwargs):
 
             if batch_index + 1 != len(email_batches) and batch_pause > 0:
                 sleep(batch_pause)
+
+    action.emailLocked = False
 
     action.emailJobs.append(job)
 

@@ -56,6 +56,25 @@ def did_pass_test(test, value, param_type):
     except:
         return False
 
+def replace_link(match, item, order):
+    """Generates new HTML replacement string for attribute with the attribute value and mark styles"""
+    [href, param, field, label] = [match.group(1), match.group(2), match.group(3), match.group(5)]
+    if param and field:
+        href += f'?{param}={item.get(field)}'
+
+    return f'<a href="{href}">{label}</a>'
+
+def parse_link(html, item, order):
+    """
+    Parse <hyperlink> ... </hyperlink> in html string based on student.
+    Only checks for
+        - bold,italic,underline,code,span inlines and may need to be modified
+    """
+    return re.sub(
+        r"<hyperlink href=\"(.*?)\" param=\"(.*?)\" field=\"(.*?)\">((?:<(?:strong|em|u|pre|code|span.*?)>)*)(.*?)((?:</(?:strong|em|u|pre|code|span)>)*)</hyperlink>",
+        lambda match: replace_link(match, item, order),
+        html
+    )
 def replace_attribute(match, item, order):
     """Generates new HTML replacement string for attribute with the attribute value and mark styles"""
     field = match.group(2)
@@ -107,7 +126,7 @@ def generate_condition_tag_locations(html):
     Returns:
         [dict{list((start,stop))}] -- Dictionary of condition tag locations
     """
-    tagPattern = r"<condition conditionid=\"(.*?)\" index=\"\d+\"(?: label=\"else\")?>|<\/condition>"
+    tagPattern = r"<condition conditionid=\"(.*?)\" ruleid=\"(.*?)\"(?: label=\"else\")?>|<\/condition>"
     conditionTagLocations = defaultdict(list)
     stack = []
     for match in re.finditer(tagPattern, html):
@@ -159,3 +178,16 @@ def replace_tags(html, old, new):
     """
     tagPattern = r"(<\s*\/?\s*)" + old + r"(\s*([^>]*)?\s*>)"
     return re.sub(tagPattern, r"\g<1>" + new + r"\g<2>", html)
+
+def strip_tags(html, old):
+    """Removes all instances of <old ...> and </old>
+
+    Arguments:
+        html {string} -- Serialized HTML String of content editor
+
+    Returns:
+        string -- New HTML String
+    """
+    tagPattern = r"(<\s*\/?\s*)" + old + r"(\s*([^>]*)?\s*>)"
+    return re.sub(tagPattern, "", html)
+    

@@ -159,8 +159,6 @@ class DataLabTab extends React.Component {
         dataIndex: "steps",
         key: "modules",
         render: steps => {
-          let didIncludeComputed = false;
-
           return steps.map((step, stepIndex) => {
             if (step.type === "datasource") {
               const datasource = datasources.find(
@@ -195,8 +193,7 @@ class DataLabTab extends React.Component {
                   {step.form.name}
                 </Tag>
               );
-            } else if (step.type === "computed" && !didIncludeComputed) {
-              didIncludeComputed = true;
+            } else if (step.type === "computed") {
               return (
                 <Tag color="green" key={stepIndex} style={{ margin: 3 }}>
                   <Icon type="calculator" style={{ marginRight: 5 }} />

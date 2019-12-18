@@ -1,7 +1,8 @@
 import React from "react";
+import { Prompt } from "react-router-dom";
 
 import { Editor } from 'slate-react';
-import { Value } from 'slate';
+import { Value, Block } from 'slate';
 import SoftBreak from "slate-soft-break";
 
 import Mark from './packages/Mark';
@@ -26,25 +27,41 @@ const initialValue = Value.fromJSON({
   },
 });
 
+const nonConditionNodes = [
+  { type: 'paragraph' },
+  { type: 'list-item' },
+  { type: 'bulleted-list' },
+  { type: 'numbered-list' },
+  { type: 'code' },
+  { type: 'heading-one' },
+  { type: 'heading-two' },
+  { type: 'link' },
+  { type: 'image' },
+  { type: 'attribute' }
+];
+
 class ContentEditor extends React.Component {
   schema = {
     document: {
       nodes: [
         { match: [
-          { type: 'paragraph' },
-          { type: 'list-item' },
-          { type: 'bulleted-list' },
-          { type: 'numbered-list' },
-          { type: 'code' },
-          { type: 'heading-one' },
-          { type: 'heading-two' },
-          { type: 'link' },
-          { type: 'image' },
-          { type: 'attribute' },
-          { type: 'condition-wrapper' },
+          ...nonConditionNodes,
+          { type: 'rule' },
           { type: 'condition' }
-        ]}
-      ]
+        ]},
+      ],
+      first: nonConditionNodes,
+      last: nonConditionNodes,
+      normalize: (editor, { code, node, child, index }) => {
+        switch (code) {
+          case 'first_child_type_invalid':
+            return editor.insertNodeByKey(node.key, 0, Block.create({ object: 'block', type: 'paragraph' }));
+          case 'last_child_type_invalid':
+            return editor.insertNodeByKey(node.key, node.nodes.size, Block.create({ object: 'block', type: 'paragraph' }));
+          default:
+            return
+        }
+      }
     }
   };
 
@@ -80,7 +97,7 @@ class ContentEditor extends React.Component {
 
   componentDidMount = () => {
     const html = this.editor.generateDocument(this.props.html);
-    this.setState({ value: html });
+    this.setState({ value: html, referenceContent: this.props.html });
   };
 
   componentDidUpdate = () => {
@@ -88,7 +105,7 @@ class ContentEditor extends React.Component {
   };
 
   handleRuleDrag = () => {
-    const { mouseEvent, ruleIndex, rules } = this.props;
+    const { mouseEvent, rule } = this.props;
     const { isInside } = this.state;
 
     if (mouseEvent) {
@@ -108,15 +125,11 @@ class ContentEditor extends React.Component {
         this.setState({ isInside: false });
     }
 
-    if (ruleIndex !== null && isInside) {
+    if (rule !== null && isInside) {
       this.setState({ isInside: false }, () => {
-        this.editor.insertRule(ruleIndex, rules[ruleIndex]);
+        this.editor.insertRule(rule);
       });
     }
-  };
-
-  handleRuleClick(ruleIndex, rules) {
-    this.editor.insertRule(ruleIndex, rules[ruleIndex]);
   };
 
   previewContent = () => {
@@ -138,15 +151,13 @@ class ContentEditor extends React.Component {
   updateContent = () => {
     const { onUpdate } = this.props;
 
-    const content = {
-      html: this.editor.generateHtml()
-    };
 
     this.setState({ error: null, saving: true });
 
+    const html = this.editor.generateHtml();
     onUpdate({
-      content,
-      onSuccess: () => this.setState({ saving: false }),
+      content: { html },
+      onSuccess: () => this.setState({ saving: false, referenceContent: html }),
       onError: error => this.setState({ error })
     });
   };
@@ -170,7 +181,7 @@ class ContentEditor extends React.Component {
           {this.editor && this.editor.renderMarkButton("code", "Code", "code")}
           {this.editor && this.editor.renderFontFamilySelect()}
           {this.editor && this.editor.renderColorButton()}
-          {<LinkButton editor={this.editor} />}
+          {<LinkButton editor={this.editor} order={order} />}
           <ImageButton editor={this.editor} />
           {this.editor && this.editor.renderBlockButton("heading-one", "Header One", "looks_one")}
           {this.editor && this.editor.renderBlockButton("heading-two", "Header Two", "looks_two")}
@@ -191,9 +202,19 @@ class ContentEditor extends React.Component {
           }
         />
         <div style={{ marginTop: "10px" }}>
-          <PreviewButton loading={previewing} onClick={this.previewContent} />
+          <PreviewButton previewing={previewing} onClick={this.previewContent} />
           <SaveButton saving={saving} onClick={this.updateContent} />
         </div>
+
+        <Prompt
+          when={
+            !!(
+              this.editor &&
+              this.editor.generateHtml() !== this.state.referenceContent
+            )
+          }
+          message="You are about to navigate away from this page. If you proceed, any unsaved changes to the content will be lost. Are you sure you want to continue?"
+        />
       </div>
     )
   };
