@@ -2,6 +2,8 @@ import re
 from dateutil import parser
 import time
 from collections import defaultdict
+from datetime import datetime, timedelta
+
 import jwt
 
 from ontask.settings import (
@@ -93,7 +95,9 @@ def replace_attribute(match, item, order, forms, email):
             form_id = forms.filter(name=field)[0].id
             # Get Form ID from Field
 
-            token = jwt.encode({'email': email}, SECRET_KEY, algorithm='HS256').decode()
+            iat = datetime.utcnow()
+            exp = iat + timedelta(days=90)
+            token = jwt.encode({'email': email, 'iat': iat, 'exp': exp}, SECRET_KEY, algorithm='HS256').decode()
             link = f'{FRONTEND_DOMAIN}/form/{form_id}/?token={token}'
 
             link_html = f'<a href={link}>{link}</a>'
