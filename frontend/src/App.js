@@ -63,6 +63,9 @@ class App extends React.Component {
     const queryStrings = queryString.parse(window.location.search);
     const { tkn, lti, container } = queryStrings;
 
+    // Form Token
+    const form_tkn = queryStrings.token;
+
     if (tkn)
       requestToken(tkn, response => {
         sessionStorage.setItem("token", response.token);
@@ -75,6 +78,17 @@ class App extends React.Component {
           ltiContainerId: container
         });
       });
+    else if (form_tkn) {
+      // sessionStorage.setItem("token", form_tkn);
+      // sessionStorage.setItem("email", 'fake_email');
+      // sessionStorage.setItem("name", 'fake_name');
+      // sessionStorage.setItem("group", 'fake_group');
+      this.setState({
+        hasToken: true,
+        ltiResourceId: lti,
+        ltiContainerId: container
+      });
+    }
     else {
       this.setState({ ltiResourceId: lti, ltiContainerId: container });
     }
