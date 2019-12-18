@@ -161,11 +161,6 @@ class AccessForm(APIView):
 
         user_values = []
 
-        print(accessible_records)
-        print(accessible_records.info())
-        print(vars(form))
-        print(token)
-
         # Get User Email from logged in user or jwt token
         if self.request.user.is_authenticated:
             email = self.request.user.email.lower()
