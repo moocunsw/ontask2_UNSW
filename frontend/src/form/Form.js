@@ -29,21 +29,16 @@ class Form extends React.Component {
     fetching: true,
     singleRecordIndex: 0,
     saved: {},
-    filterOptions: {
-      pagination: {},
-      sort: {},
-      filter: [],
-      search: "",
-      groupBy: null
-    },
   };
 
   componentWillMount() {
     const { match, history } = this.props;
 
     apiRequest(`/form/${match.params.id}/access/`, {
-      method: "GET",
+      method: "POST",
+      payload: null,
       onSuccess: form => {
+        console.log(form);
         const columnNames = [
           ...new Set([
             form.primary,
@@ -201,11 +196,44 @@ class Form extends React.Component {
     });
   };
 
-  fetchData = (payload, setLoading) => {
-    console.log(payload);
-    // this.setState({filterOptions: filterOptions});
-    // TODO: Serverside filtering using these variables+search as state
-  };
+  fetchData = (payload, setTableState) => {
+    setTableState({filterOptions: payload, loading: true});
+    const { match, history } = this.props;
+
+    apiRequest(`/form/${match.params.id}/access/`, {
+      method: "POST",
+      payload: payload,
+      onSuccess: form => {
+        console.log(form)
+        const columnNames = [
+          ...new Set([
+            form.primary,
+            ...form.visibleFields,
+            ...form.fields.map(field => field.name)
+          ])
+        ];
+        this.setState({
+          fetching: false,
+          form,
+          columnNames,
+          tableColumns: this.generateColumns(form, columnNames),
+          grouping: form.default_group,
+          searchField: form.primary
+        });
+
+        payload.pagination.total = form.filter_details.paginationTotal;
+        setTableState({filterOptions: payload, loading: false});
+      },
+      onError: (error, status) => {
+        setTableState({filterOptions: payload, loading: false});
+        if (status === 403) {
+          history.replace("/forbidden");
+          return;
+        }
+        history.replace("/error");
+      }
+    });
+  }
 
   componentWillUnmount() {
     clearTimeout(this.updateSuccess);
@@ -254,7 +282,8 @@ class Form extends React.Component {
       isJSON: false,
       onSuccess: () => {
         apiRequest(`/form/${match.params.id}/access/`, {
-          method: "GET",
+          method: "POST",
+          payload: null,
           onSuccess: form => {
             this.setState({ loading: false, upload: false, form });
             notification["success"]({

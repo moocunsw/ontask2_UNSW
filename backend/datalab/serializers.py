@@ -202,7 +202,6 @@ class DatalabSerializer(DocumentSerializer):
 
 
 class RestrictedDatalabSerializer(DocumentSerializer):
-    # TODO: Test with Filters
     columns = serializers.SerializerMethodField()
     data = serializers.SerializerMethodField()
     filter_details = serializers.SerializerMethodField()
@@ -224,8 +223,16 @@ class RestrictedDatalabSerializer(DocumentSerializer):
     def get_default_group(self, datalab):
         return self.context.get("default_group")
 
-    # TODO: GET_FILTERED_DATA; GET FILTERS
+    class Meta:
+        model = Datalab
+        fields = ["name", "columns", "data", "filter_details", "groupBy", "default_group"]
+
+class FilteredDatalabSerializer(DocumentSerializer):
+    filter_details = serializers.SerializerMethodField()
+
+    def get_filter_details(self, datalab):
+        return datalab.filter_details(filters=self.context.get("filters"))
 
     class Meta:
         model = Datalab
-        fields = ["name", "columns", "data", "filters", "groupBy", "default_group"]
+        fields = ["filter_details"]

@@ -48,13 +48,11 @@ class DataLab extends React.Component {
         }
       });
     } else if (match.params.id) {
-      // this.fetchData();
       apiRequest(`/datalab/${match.params.id}/access/`, {
-        // TODO: FIX
         method: "POST",
         payload: null,
         onSuccess: selected => {
-          const { datasources, dataLabs, filters } = selected;
+          const { datasources, dataLabs, filter_details } = selected;
           delete selected.datasources;
           delete selected.dataLabs;
           this.setState({
@@ -62,7 +60,7 @@ class DataLab extends React.Component {
             selected,
             datasources,
             dataLabs,
-            filters
+            filter_details
           });
         },
         onError: (error, status) => {
@@ -112,27 +110,21 @@ class DataLab extends React.Component {
   };
 
   fetchData = (payload, setTableState) => {
-    setTableState({filterOptions: payload, loading: true})
+    // TODO: Only Filter Details
+    setTableState({filterOptions: payload, loading: true});
     const { match, history } = this.props;
-    apiRequest(`/datalab/${match.params.id}/access/`, {
+    apiRequest(`/datalab/${match.params.id}/filter/`, {
       method: "POST",
       payload: payload,
       onSuccess: selected => {
-        const { datasources, dataLabs, filter_details } = selected;
-        delete selected.datasources;
-        delete selected.dataLabs;
-        this.setState({
-          fetching: false,
-          selected,
-          datasources,
-          dataLabs,
-        });
-        //
+        const { filter_details } = selected;
+        this.setState({filter_details});
+        // Update Number of results
         payload.pagination.total = filter_details.paginationTotal;
-        setTableState({filterOptions: payload, loading: false})
+        setTableState({filterOptions: payload, loading: false});
       },
       onError: (error, status) => {
-        setTableState({filterOptions: payload, loading: false})
+        setTableState({filterOptions: payload, loading: false});
         if (status === 403) {
           history.replace("/forbidden");
         } else {
@@ -144,7 +136,7 @@ class DataLab extends React.Component {
 
   render() {
     const { match, history, location } = this.props;
-    const { fetching, datasources, dataLabs, selected } = this.state;
+    const { fetching, datasources, dataLabs, selected, filter_details } = this.state;
     let menuKey = [location.pathname.split("/")[3]];
     if (menuKey[0] === "form") menuKey.push(location.pathname.split("/")[4]);
 
@@ -272,7 +264,7 @@ class DataLab extends React.Component {
                                 {...props}
                                 steps={selected.steps}
                                 data={selected.data}
-                                filter_details={selected.filter_details}
+                                filter_details={filter_details}
                                 datasources={datasources}
                                 dataLabs={dataLabs}
                                 selectedId={selected.id}
@@ -324,7 +316,7 @@ class DataLab extends React.Component {
                           restrictedView
                           selectedId={match.params.id}
                           data={selected.data}
-                          filter_details={selected.filter_details}
+                          filter_details={filter_details}
                           columns={selected.columns}
                           groupBy={selected.groupBy}
                           defaultGroup={selected.default_group}
