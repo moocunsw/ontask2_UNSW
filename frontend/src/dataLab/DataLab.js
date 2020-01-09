@@ -111,8 +111,8 @@ class DataLab extends React.Component {
     this.setState({ selected: { ...selected, forms } });
   };
 
-  fetchData = (payload, setLoading, filterOptions, setFilterOptions) => {
-    setLoading(true);
+  fetchData = (payload, setTableState) => {
+    setTableState({filterOptions: payload, loading: true})
     const { match, history } = this.props;
     apiRequest(`/datalab/${match.params.id}/access/`, {
       method: "POST",
@@ -127,13 +127,12 @@ class DataLab extends React.Component {
           datasources,
           dataLabs,
         });
-        setLoading(false);
-        const pagination = filterOptions.pagination;
-        pagination.total = filter_details.paginationTotal;
-        setFilterOptions({...filterOptions, pagination})
+        //
+        payload.pagination.total = filter_details.paginationTotal;
+        setTableState({filterOptions: payload, loading: false})
       },
       onError: (error, status) => {
-        setLoading(false);
+        setTableState({filterOptions: payload, loading: false})
         if (status === 403) {
           history.replace("/forbidden");
         } else {

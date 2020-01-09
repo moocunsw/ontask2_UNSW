@@ -99,6 +99,9 @@ class Datalab(Document):
         from form.models import Form
         from .utils import calculate_computed_field
 
+        from datetime import datetime
+        now = datetime.now()
+
         build_fields = []
         combined_data = pd.DataFrame(self.relations)
 
@@ -205,6 +208,7 @@ class Datalab(Document):
                 combined_data = combined_data.assign(**computed_fields)
 
         combined_data.replace({pd.np.nan: None}, inplace=True)
+        print(datetime.now() - now)
 
         return combined_data.to_dict("records")
 
@@ -267,35 +271,28 @@ def get_filters(df, columns):
 
 
 def get_filtered_data(data, columns, filters):
-    # TODO: JAMES 2020
-
-    pprint(filters)
-
     # TODO MAYBE FIX Everything empty
     if len(filters.keys()) == 0: return (data, len(data))
-    # pprint(columns)
-    # pprint(data)
     filtered_data = list(filter(lambda row: not remove_row_filter(row, filters, columns), data))
 
     # Search
-    # TODO TEST
     if not filters['search'] == '':
         filtered_data = list(filter(lambda row: not remove_row_search(row, filters, columns), filtered_data))
 
     # Sort
-    sort_field = filters['sortField']
-    sort_order = filters['sortOrder']
-    if filters['sortField'] is not None and filters['sortOrder'] is not None:
-        # TODO TEST DESCEND + NEUTRAL
-        column = next((item for item in columns if item['field'] == sort_field), None)
-        filtered_data.sort(key=lambda x: sort_column_key(x, sort_field, column), reverse=sort_order=='descend')
+    if not len(filters['sorter']) == 0:
+        sort_field = filters['sorter']['field']
+        sort_order = filters['sorter']['order']
+        if sort_field is not None and sort_order is not None:
+            # TODO TEST DESCEND + NEUTRAL
+            column = next((item for item in columns if item['field'] == sort_field), None)
+            filtered_data.sort(key=lambda x: sort_column_key(x, sort_field, column), reverse=sort_order=='descend')
 
     pagination_total = len(filtered_data)
 
     # Pagination
     # TODO: TEST
-    # TODO: PAGINATION DEETS TO FRONTEND
-    filtered_data = paginate_data(filtered_data, filters['page'], filters['results'])
+    filtered_data = paginate_data(filtered_data, filters['pagination'])
     # pprint(filtered_data)
     return filtered_data, pagination_total
 
@@ -307,8 +304,8 @@ def remove_row_filter(row, filters, columns):
         field_type = item['details']['field_type']
 
         if field_type == 'checkbox-group':
-            mode_and = filters['checkboxGroupFilterModes'][column_name]
-            filter_list = filters['checkboxGroupFilter'][column_name]
+            mode_and = filters['checkboxFilterModes'][column_name]
+            filter_list = filters['checkboxFilters'][column_name]
             if len(filter_list) == 0:
                 continue
             else:
@@ -334,19 +331,19 @@ def remove_row_filter(row, filters, columns):
     return False
 
 def remove_row_search(row, filters, columns):
-    print(str(row))
+    # TODO: Can improve
     return not (filters['search'].lower() in str(row).lower())
 
 def sort_column_key(x, sort_field, column):
     if column['details']['field_type'] == 'checkbox-group':
         checkbox_fields = column['details']['fields']
-        # print([x[f'{sort_field}__{field}'] for field in checkbox_fields])
-        # print(list(filter(lambda field: x[f'{sort_field}__{field}'], checkbox_fields)))
         return len(list(filter(lambda field: x[f'{sort_field}__{field}'], checkbox_fields)))
     else:
         return x[sort_field]
 
-def paginate_data(data, page, results):
-    start = (page - 1) * results
-    end = start + results
+def paginate_data(data, pagination):
+    page = pagination['current']
+    pageSize = pagination['pageSize']
+    start = (page - 1) * pageSize
+    end = start + pageSize
     return data[start:end]
