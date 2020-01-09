@@ -35,10 +35,8 @@ class Form extends React.Component {
     const { match, history } = this.props;
 
     apiRequest(`/form/${match.params.id}/access/`, {
-      method: "POST",
-      payload: null,
+      method: "GET",
       onSuccess: form => {
-        console.log(form);
         const columnNames = [
           ...new Set([
             form.primary,
@@ -46,10 +44,12 @@ class Form extends React.Component {
             ...form.fields.map(field => field.name)
           ])
         ];
-
+        const { filter_details } = form;
+        console.log(filter_details);
         this.setState({
           fetching: false,
           form,
+          filter_details,
           columnNames,
           tableColumns: this.generateColumns(form, columnNames),
           grouping: form.default_group,
@@ -203,25 +203,9 @@ class Form extends React.Component {
     apiRequest(`/form/${match.params.id}/access/`, {
       method: "POST",
       payload: payload,
-      onSuccess: form => {
-        console.log(form)
-        const columnNames = [
-          ...new Set([
-            form.primary,
-            ...form.visibleFields,
-            ...form.fields.map(field => field.name)
-          ])
-        ];
-        this.setState({
-          fetching: false,
-          form,
-          columnNames,
-          tableColumns: this.generateColumns(form, columnNames),
-          grouping: form.default_group,
-          searchField: form.primary
-        });
-
-        payload.pagination.total = form.filter_details.paginationTotal;
+      onSuccess: filter_details => {
+        this.setState({filter_details});
+        payload.pagination.total = filter_details.paginationTotal;
         setTableState({filterOptions: payload, loading: false});
       },
       onError: (error, status) => {
@@ -282,10 +266,10 @@ class Form extends React.Component {
       isJSON: false,
       onSuccess: () => {
         apiRequest(`/form/${match.params.id}/access/`, {
-          method: "POST",
-          payload: null,
+          method: "GET",
           onSuccess: form => {
-            this.setState({ loading: false, upload: false, form });
+            const { filter_details } = form;
+            this.setState({ loading: false, upload: false, form, filter_details });
             notification["success"]({
               message: "Successfully imported form data"
             });
@@ -304,6 +288,7 @@ class Form extends React.Component {
     const {
       fetching,
       form,
+      filter_details,
       tableColumns,
       columnNames,
       singleRecordIndex,
@@ -313,6 +298,9 @@ class Form extends React.Component {
       loading,
       upload
     } = this.state;
+
+    const filters = filter_details && filter_details.filters;
+    const filteredData = filter_details ? filter_details.filteredData : [];
 
     const groups =
       form && form.groupBy
@@ -526,19 +514,16 @@ class Form extends React.Component {
                         ]}
 
                         <ContentTable
+                          showSearch
                           columns={tableColumns}
                           dataSource={
                             grouping !== undefined && grouping !== null
-                              ? form.data.filter(
+                              ? filteredData.filter(
                                   item => _.get(item, form.groupBy) === grouping
                                 )
-                              : form.data
+                              : filteredData
                           }
                           scroll={{ x: (tableColumns.length - 1) * 175 }}
-                          pagination={{
-                            showSizeChanger: true,
-                            pageSizeOptions: ["10", "25", "50", "100"]
-                          }}
                           rowKey={(record, i) => i}
                           rowClassName={record => {
                             const primary = record[form.primary];
@@ -550,6 +535,7 @@ class Form extends React.Component {
                           isReadOnly={this.isReadOnly}
                           onFieldUpdate={this.onFieldUpdate}
                           fetchData={this.fetchData}
+                          filters={filters}
                         />
                       </div>
                     )}

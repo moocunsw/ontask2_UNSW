@@ -12,6 +12,7 @@ import csv
 
 from .serializers import FormSerializer, RestrictedFormSerializer
 from .models import Form
+from .utils import get_filters, get_filtered_data
 
 from accounts.models import lti
 from datalab.utils import get_relations
@@ -238,6 +239,43 @@ class AccessForm(APIView):
 
         return [form, data, editable_records, default_group]
 
+    def get_filter_details(self, form, data, filters={}):
+        # Create Columns
+        columns = [
+            {
+                'field': form.primary,
+                'details': {
+                    'field_type': 'text',
+                    'options': [],
+                    'fields': []
+                }
+            }
+        ]
+
+        for field in form.fields:
+            columns.append(
+                {
+                    'field': field.name,
+                    'details': {
+                        'field_type': field.type,
+                        'options': field.options,
+                        'fields': field.columns
+                    }
+                }
+            )
+
+        df = pd.DataFrame.from_dict(data)
+
+        filtered_data, pagination_total = get_filtered_data(data, columns, filters)
+        return (
+            {
+                'dataNum': len(data),
+                'paginationTotal': pagination_total,
+                'filters': get_filters(df, columns),
+                'filteredData': filtered_data
+            }
+        )
+
     def get(self, request, id):
         [form, data, editable_records, default_group] = self.get_data(id)
 
@@ -251,7 +289,12 @@ class AccessForm(APIView):
         )
 
         logger.info("form.access", extra={"id": id, "user": request.user.email})
-        return Response(serializer.data)
+
+        result = {
+            **serializer.data,
+            'filter_details': self.get_filter_details(form, data)
+        }
+        return Response(result)
 
     def patch(self, request, id):
         # Data is cleaned up version of form.data
@@ -295,22 +338,10 @@ class AccessForm(APIView):
         return Response(status=HTTP_200_OK)
 
     def post(self, request, id):
-        """Same as GET, but apply filter"""
+        """Apply Filter"""
         [form, data, editable_records, default_group] = self.get_data(id)
 
-        pprint(request.data)
-
-        serializer = RestrictedFormSerializer(
-            form,
-            context={
-                "data": data,
-                "editable_records": editable_records,
-                "default_group": default_group,
-            },
-        )
-
-        logger.info("form.access", extra={"id": id, "user": request.user.email})
-        return Response(serializer.data)
+        return Response(self.get_filter_details(form, data, request.data), status=HTTP_200_OK)
 
 @api_view(["POST"])
 @permission_classes([IsAdminUser])

@@ -57,3 +57,7 @@ class RestrictedFormSerializer(DocumentSerializer):
             "searchBy",
             "default_group",
         ]
+
+
+# class FilteredFormSerializer(DocumentSerializer):
+    # filtered_details = 

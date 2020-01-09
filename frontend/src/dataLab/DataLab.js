@@ -49,8 +49,7 @@ class DataLab extends React.Component {
       });
     } else if (match.params.id) {
       apiRequest(`/datalab/${match.params.id}/access/`, {
-        method: "POST",
-        payload: null,
+        method: "GET",
         onSuccess: selected => {
           const { datasources, dataLabs, filter_details } = selected;
           delete selected.datasources;
@@ -110,7 +109,6 @@ class DataLab extends React.Component {
   };
 
   fetchData = (payload, setTableState) => {
-    // TODO: Only Filter Details
     setTableState({filterOptions: payload, loading: true});
     const { match, history } = this.props;
     apiRequest(`/datalab/${match.params.id}/filter/`, {

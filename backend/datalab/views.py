@@ -422,7 +422,7 @@ class DatalabViewSet(viewsets.ModelViewSet):
         return JsonResponse({"success": 1})
 
 
-@api_view(["POST"])
+@api_view(["GET"])
 def AccessDataLab(request, id):
     try:
         datalab = Datalab.objects.get(id=id)
@@ -430,6 +430,7 @@ def AccessDataLab(request, id):
         raise NotFound()
 
     if datalab.container.has_full_permission(request.user):
+        # request.data is equivalent of no filters
         serializer = DatalabSerializer(datalab, context={"filters": request.data})
         return Response(serializer.data)
 
