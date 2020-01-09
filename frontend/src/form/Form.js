@@ -76,58 +76,49 @@ class Form extends React.Component {
     });
   }
 
+  // ContentTable Function
+  isReadOnly = (record, column) => {
+    const { form } = this.state;
+    const field = form.fields.find(field => field.name === column);
+    return !(
+      form.is_active &&
+      form.editable_records.includes(_.get(record, form.primary)) &&
+      field
+    );
+  };
+
+  onFieldUpdate = (record, value, dataIndex, column, index) => {
+    const { form } = this.state;
+    const field = form.fields.find(field => field.name === dataIndex);
+
+    this.handleSubmit(
+      record[form.primary],
+      column ? column: field.name,
+      value,
+      index,
+      field.name
+    )
+  };
+
   generateColumns = (form, columnNames) => {
     const { singleRecordIndex } = this.state;
 
     if (!form || !columnNames) { return [] }
-    // console.log(columnNames);
 
     if (form.layout === "table") {
-      return columnNames.map((column, columnIndex) => ({
+      return columnNames.map((column, columnIndex) => {
+        const field = form.fields.find(field => field.name === column);
+        return ({
         title: column,
         dataIndex: column,
-        key: columnIndex,
-        sorter: (a, b) => String(a[column] || "").localeCompare(String(b[column] || "")),
-        render: (value, record, index) => {
-          const field = form.fields.find(field => field.name === column);
-          const editable =
-            form.is_active &&
-            form.editable_records.includes(_.get(record, form.primary)) &&
-            field;
-
-
-          if (field && field.type === "checkbox-group")
-            value = _.pick(record, field.columns.map(column => `${field.name}__${column}`));
-          // console.log(form);
-          // console.log(form.fields);
-          // console.log(column); // Column Name
-          // console.log(record); // Row Info (Object)
-          // console.log(field); // Field Info
-          // console.log(value); // Value of the Field (if checkbox, then object)
-          // console.log(editable); // Undefined if non editable, otherwise same as field
-
-          // console.log(primary);
-          // console.log(record.item);
-          // console.log(form.primary);
-
-          return (
-            <Field
-              readOnly={!editable}
-              field={field}
-              value={value}
-              onSave={(value, column) =>
-                this.handleSubmit(
-                  record[form.primary],
-                  column ? column : field.name,
-                  value,
-                  index,
-                  field.name
-                )
-              }
-            />
-          );
-        }
-      }));
+        field: !!field ?
+          field
+          : {
+            type: 'text',
+            columns: [],
+            options: []
+          },
+      })});
     } else if (form.layout === "vertical") {
       return [
         {
@@ -147,9 +138,6 @@ class Form extends React.Component {
               form.is_active &&
               form.editable_records.includes(primary) &&
               field;
-            // console.log(primary);
-            // console.log(record.item);
-            // console.log(form.primary);
 
             if (field && field.type === "checkbox-group")
               value = _.pick(record, field.columns.map(column => `${field.name}__${column}`));
@@ -180,21 +168,6 @@ class Form extends React.Component {
   handleSubmit = (primary, field, value, index, loadingKey) => {
     const { match } = this.props;
     const { saved, form } = this.state;
-
-    // const { fields } = form;
-    // const item = fields.find(field => field.name === loadingKey);
-    // Boolean value to determine if field should be passed as {loadingKey__field}
-    // const addColumn = item && item.type === "checkbox-group";
-    // console.log(addColumn);
-
-    // console.log(primary);
-    // console.log(field);
-    // console.log(value);
-    // console.log(index);
-    // console.log(loadingKey);
-
-    // console.log(form);
-    // const columnField = `${loadingKey}_${field}`;
 
     const data = form.data;
     data.forEach(item => {
@@ -228,8 +201,9 @@ class Form extends React.Component {
     });
   };
 
-  handleChange = (filterOptions) => {
-    this.setState({filterOptions: filterOptions});
+  fetchData = (payload, setLoading) => {
+    console.log(payload);
+    // this.setState({filterOptions: filterOptions});
     // TODO: Serverside filtering using these variables+search as state
   };
 
@@ -315,8 +289,6 @@ class Form extends React.Component {
       form && form.groupBy
         ? new Set(form.data.map(item => item[form.groupBy]))
         : [];
-
-    console.log(form);
 
     return (
       <div className="form">
@@ -525,8 +497,6 @@ class Form extends React.Component {
                         ]}
 
                         <ContentTable
-                          form={form}
-                          fields={form.fields}
                           columns={tableColumns}
                           dataSource={
                             grouping !== undefined && grouping !== null
@@ -548,8 +518,9 @@ class Form extends React.Component {
                               ? "saved"
                               : "";
                           }}
-                          handleSubmit={this.handleSubmit}
-                          onChange={this.handleChange}
+                          isReadOnly={this.isReadOnly}
+                          onFieldUpdate={this.onFieldUpdate}
+                          fetchData={this.fetchData}
                         />
                       </div>
                     )}

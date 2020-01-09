@@ -32,32 +32,8 @@ class Data extends React.Component {
       visualisation: false,
       view: "data",
       grouping: defaultGroup,
-      filterOptions: {
-        pagination: {},
-        sort: {},
-        filter: [],
-        search: "",
-        groupBy: null
-      },
     };
   }
-
-  initialiseData = memoize((data, searchTerm) => {
-    if (!data) return [];
-
-    const term = searchTerm.trim().toLowerCase();
-
-    const tableData =
-      term === ""
-        ? data
-        : data.filter(row =>
-            String(Object.values(row))
-              .toLowerCase()
-              .includes(term)
-          );
-
-    return tableData;
-  });
 
   initialiseColumns = () => {
     const { steps, columns, data } = this.props;
@@ -103,6 +79,65 @@ class Data extends React.Component {
           }
         }));
 
+    return [
+      {
+        title: "Field",
+        dataIndex: "column.details.label"
+      },
+      {
+        title: "Value",
+        dataIndex: "value",
+        render: (value, record) => {
+          if (record.column.details.field_type === "checkbox-group")
+            value = _.pick(record.item, record.column.details.fields);
+
+          return (
+            <Field
+              readOnly
+              field={{
+                type: record.column.details.field_type,
+                columns: record.column.details.fields,
+                options: record.column.details.options
+              }}
+              value={value}
+            />
+          );
+        }
+      }
+    ];
+  };
+
+  initialiseColumnsTemp = () => {
+    // Convert Columns into a suitable structure for ContentTable
+    const { steps, columns, data } = this.props;
+    if (data.length > 1)
+      return columns
+        .filter(column => column.visible)
+        .map(column => {
+          return ({
+            fixed: column.pin ? "left" : false,
+            className: "column",
+            dataIndex: column.details.label,
+            field: {
+              name: column.details.label,
+              type: column.details.field_type,
+              columns: column.details.fields,
+              options: column.details.options
+            },
+            title: (
+              <span
+                className={`column_header ${_.get(
+                  steps,
+                  `${column.stepIndex}.type`,
+                  ""
+                )}`}
+              >
+                {this.TruncatedLabel(column.details.label)}
+              </span>
+            ),
+          })
+        });
+    // TODO: TEST WITH ONE COLUMN
     return [
       {
         title: "Field",
@@ -329,16 +364,6 @@ class Data extends React.Component {
     });
   };
 
-  handleChange = (filterOptions) => {
-    this.setState({filterOptions: filterOptions});
-    // TODO: Serverside filtering using these variables+search as state
-  };
-
-  updateTableData = (newData) => {
-    const { tableData } = this.state;
-    if (!_.isEqual(newData, tableData)) this.setState({ tableData: newData });
-  };
-
   componentWillUnmount() {
     clearTimeout(this.updateSuccess);
   }
@@ -360,9 +385,11 @@ class Data extends React.Component {
   render() {
     const {
       data,
+      filter_details,
       groupBy,
       columns,
       updateDatalab,
+      fetchData,
       selectedId,
       restrictedView
     } = this.props;
@@ -370,42 +397,24 @@ class Data extends React.Component {
       visualisation,
       edit,
       saved,
-      filterOptions,
       view,
       exporting,
       grouping
     } = this.state;
 
-    const { search } = filterOptions;
+    const { filters, filteredData } = filter_details;
 
     // Columns are initialised on every render, so that changes to the sort
     // in local state can be reflected in the table columns. Otherwise the
     // columns would ideally only be initialised when receiving the build
     // for the first time
-    const orderedColumns = this.initialiseColumns();
+    const orderedColumns = this.initialiseColumnsTemp();
 
     // Similarly, the table data is initialised on every render, so that
     // changes to values in form columns can be reflected
-    const tableData = this.initialiseData(data, search);
-    // const totalDataAmount = data ? data.length : 0;
-
-    // const tableDataAmount = tableData.length;
+    // const tableData = this.initialiseData(data, search);
 
     const groups = groupBy ? new Set(data.map(item => item[groupBy])) : [];
-
-    // console.log(data.length > 1
-    //   ? grouping !== undefined
-    //     ? tableData.filter(
-    //         item => _.get(item, groupBy) === grouping
-    //       )
-    //     : tableData
-    //   : columns.map((column, i) => ({
-    //       column,
-    //       value: _.get(data[0], column.details.label),
-    //       item: data[0]
-    //     })));
-
-    // console.log(orderedColumns);
 
     return (
       <div className="data" style={{ marginTop: 25 }}>
@@ -415,7 +424,7 @@ class Data extends React.Component {
               size="large"
               onClick={() => this.setState({ visualisation: true })}
               type="primary"
-              disabled={!tableData.length}
+              disabled={!filteredData.length}
             >
               <Icon type="area-chart" size="large" />
               Visualise
@@ -465,47 +474,42 @@ class Data extends React.Component {
         ]}
 
         <div className="data_manipulation">
-          {tableData.length > 1 && (
+          {filteredData.length > 1 && (
             <Visualisation
               visible={visualisation}
               columns={columns}
-              data={tableData}
+              data={filteredData}
               closeModal={() => this.setState({ visualisation: false })}
             />
           )}
 
           {view === "data" && (
             <ContentTable
+              showSearch
               rowKey={(record, index) => index}
               columns={orderedColumns}
               dataSource={
                 data.length > 1
                   ? grouping !== undefined
-                    ? tableData.filter(
+                    ? filteredData.filter(
                         item => _.get(item, groupBy) === grouping
                       )
-                    : tableData
+                    : filteredData
                   : columns.map((column, i) => ({
                       column,
                       value: _.get(data[0], column.details.label),
                       item: data[0]
                     }))
               }
+              filters={filters}
               scroll={{ x: (orderedColumns.length - 1) * 175 }}
-              onChange={this.handleChange}
-              pagination={
-                data.length > 1
-                  ? {
-                      showSizeChanger: true,
-                      pageSizeOptions: ["10", "25", "50", "100"]
-                    }
-                  : false
-              }
+              fetchData={fetchData}
               rowClassName={record =>
                 edit.primary in record && saved[record[edit.primary]]
                   ? "saved"
                   : ""
               }
+              isReadOnly={(record, column) => true}
             />
           )}
 

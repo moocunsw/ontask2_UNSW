@@ -274,6 +274,8 @@ class DataLabForm extends React.Component {
       ...(fields || []).map(field => field.name)
     ];
 
+    console.log(fields)
+
     const groups = groupBy ? new Set(data.map(item => item[groupBy])) : [];
 
     if (layout === "table") {
@@ -347,7 +349,7 @@ class DataLabForm extends React.Component {
 
             if (field && field.type === "checkbox-group")
               value = _.pick(record, field.columns.map(column => `${field.name}__${column}`));
-            console.log(record.item);
+            // console.log(record.item);
             return (
               <Field
                 primaryKey={_.get(record.item, primary)} // Force re-render of the field component after changing the selected record
