@@ -339,6 +339,7 @@ def sort_column_key(x, sort_field, column):
         checkbox_fields = column['details']['fields']
         return len(list(filter(lambda field: x[f'{sort_field}__{field}'], checkbox_fields)))
     else:
+        if x[sort_field] is None: return ''
         return x[sort_field]
 
 def paginate_data(data, pagination):
