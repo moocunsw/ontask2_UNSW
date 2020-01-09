@@ -7,10 +7,18 @@ import Field from "./Field";
 const { Search } = Input;
 
 // TODO: Boolean column named <checkbox_group column>__<checkbox_group group> issue
-
 // TODO: Potentially (implement table + vertical view)
-// TODO: GROUP BY -> Pass props to callback function in parent
-// TODO: EXPORT
+// TODO: Performance Improvements **
+// TODO: Search Enter (depends on performance)
+// TODO: Fix sort can only be ascending????
+// TODO: CLEANUP
+/*
+  TODO: TESTING
+    - GROUP?
+    - Single Columns?
+    - Restricted Users
+    - TODO: testing
+*/
 
 // Generate Initial Filters for every checkboxgroup field
 const initialiseFilterStates = (columns) => {

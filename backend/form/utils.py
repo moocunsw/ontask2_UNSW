@@ -24,7 +24,6 @@ def get_filters(df, columns):
 
 
 def get_filtered_data(data, columns, filters):
-    # TODO MAYBE FIX Everything empty
     if len(filters.keys()) == 0: return (data, len(data))
     filtered_data = list(filter(lambda row: not remove_row_filter(row, filters, columns), data))
 
@@ -37,7 +36,6 @@ def get_filtered_data(data, columns, filters):
         sort_field = filters['sorter']['field']
         sort_order = filters['sorter']['order']
         if sort_field is not None and sort_order is not None:
-            # TODO TEST DESCEND + NEUTRAL
             print(sort_field, sort_order)
             column = next((item for item in columns if item['field'] == sort_field), None)
             filtered_data.sort(key=lambda x: sort_column_key(x, sort_field, column), reverse=sort_order=='descend')
@@ -45,7 +43,6 @@ def get_filtered_data(data, columns, filters):
     pagination_total = len(filtered_data)
 
     # Pagination
-    # TODO: TEST
     filtered_data = paginate_data(filtered_data, filters['pagination'])
     # pprint(filtered_data)
     return filtered_data, pagination_total
