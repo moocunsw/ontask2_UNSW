@@ -389,7 +389,7 @@ class DatasourceModule extends React.Component {
       stepKeys,
       deleteModule
     } = this.context;
-    const { getFieldDecorator, getFieldValue } = form;
+    const { getFieldDecorator, getFieldValue, setFieldsValue } = form;
     const { editing, discrepencies } = this.state;
 
     getFieldDecorator(`steps[${stepIndex}].type`, {
@@ -501,7 +501,25 @@ class DatasourceModule extends React.Component {
               rules: [{ required: true }],
               initialValue: _.get(step, "datasource.primary")
             })(
-              <Select placeholder="Primary key" disabled={!datasource}>
+              <Select
+                placeholder="Primary key"
+                disabled={!datasource}
+                onChange={e => {
+                  if (stepIndex) return; 
+
+                  const fieldsChosen = getFieldValue(
+                    `steps[${stepIndex}].datasource.fields`
+                  ) || [];
+
+                  if (!fieldsChosen.includes(e))
+                    setFieldsValue({
+                      [`steps[${stepIndex}].datasource.fields`]: [
+                        ...fieldsChosen,
+                        e
+                      ]
+                    });
+                }}
+              >
                 {datasource &&
                   (
                     datasource.fields ||
@@ -618,11 +636,10 @@ class DatasourceModule extends React.Component {
                         <Option
                           disabled={
                             editing.isEditing ||
-                            (stepIndex > 0 &&
-                              field ===
-                                getFieldValue(
-                                  `steps[${stepIndex}].datasource.primary`
-                                ))
+                            !stepIndex && field ===
+                              getFieldValue(
+                                `steps[${stepIndex}].datasource.primary`
+                              )
                           }
                           value={field}
                           key={`${datasource.id}_${field}_field`}
