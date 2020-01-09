@@ -17,7 +17,10 @@ const { Content, Sider } = Layout;
 const SubMenu = Menu.SubMenu;
 
 class DataLab extends React.Component {
-  state = { fetching: true, forms: [] };
+  state = {
+    fetching: true,
+    forms: [],
+  };
 
   componentDidMount() {
     const { match, location, history } = this.props;
@@ -45,17 +48,21 @@ class DataLab extends React.Component {
         }
       });
     } else if (match.params.id) {
+      // this.fetchData();
       apiRequest(`/datalab/${match.params.id}/access/`, {
-        method: "GET",
+        // TODO: FIX
+        method: "POST",
+        payload: null,
         onSuccess: selected => {
-          const { datasources, dataLabs } = selected;
+          const { datasources, dataLabs, filters } = selected;
           delete selected.datasources;
           delete selected.dataLabs;
           this.setState({
             fetching: false,
             selected,
             datasources,
-            dataLabs
+            dataLabs,
+            filters
           });
         },
         onError: (error, status) => {
@@ -75,7 +82,7 @@ class DataLab extends React.Component {
 
   updateDatalab = dataLab => {
     const { selected } = this.state;
-
+    console.log(selected);
     this.setState({
       selected: { ...selected, ...dataLab }
     });
@@ -104,10 +111,41 @@ class DataLab extends React.Component {
     this.setState({ selected: { ...selected, forms } });
   };
 
+  fetchData = (payload, setLoading, filterOptions, setFilterOptions) => {
+    setLoading(true);
+    const { match, history } = this.props;
+    apiRequest(`/datalab/${match.params.id}/access/`, {
+      method: "POST",
+      payload: payload,
+      onSuccess: selected => {
+        const { datasources, dataLabs, filter_details } = selected;
+        delete selected.datasources;
+        delete selected.dataLabs;
+        this.setState({
+          fetching: false,
+          selected,
+          datasources,
+          dataLabs,
+        });
+        setLoading(false);
+        const pagination = filterOptions.pagination;
+        pagination.total = filter_details.paginationTotal;
+        setFilterOptions({...filterOptions, pagination})
+      },
+      onError: (error, status) => {
+        setLoading(false);
+        if (status === 403) {
+          history.replace("/forbidden");
+        } else {
+          history.replace("/error");
+        }
+      }
+    });
+  }
+
   render() {
     const { match, history, location } = this.props;
     const { fetching, datasources, dataLabs, selected } = this.state;
-
     let menuKey = [location.pathname.split("/")[3]];
     if (menuKey[0] === "form") menuKey.push(location.pathname.split("/")[4]);
 
@@ -235,11 +273,13 @@ class DataLab extends React.Component {
                                 {...props}
                                 steps={selected.steps}
                                 data={selected.data}
+                                filter_details={selected.filter_details}
                                 datasources={datasources}
                                 dataLabs={dataLabs}
                                 selectedId={selected.id}
                                 updateDatalab={this.updateDatalab}
                                 updateData={this.updateData}
+                                fetchData={this.fetchData}
                                 forms={selected.forms}
                                 columns={selected.columns}
                                 groupBy={selected.groupBy}
@@ -285,10 +325,12 @@ class DataLab extends React.Component {
                           restrictedView
                           selectedId={match.params.id}
                           data={selected.data}
+                          filter_details={selected.filter_details}
                           columns={selected.columns}
                           groupBy={selected.groupBy}
                           defaultGroup={selected.default_group}
                           updateDatalab={this.updateDatalab}
+                          fetchData={this.fetchData}
                         />
                       )}
 

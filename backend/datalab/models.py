@@ -16,6 +16,8 @@ import pandas as pd
 from container.models import Container
 from datasource.models import Datasource
 
+from pprint import pprint
+import logging
 
 class Column(EmbeddedDocument):
     stepIndex = IntField()
@@ -206,6 +208,26 @@ class Datalab(Document):
 
         return combined_data.to_dict("records")
 
+    def filter_details(self, filters):
+        data = self.data
+        df = pd.DataFrame.from_dict(data)
+
+        from datalab.serializers import OrderItemSerializer
+        columns = OrderItemSerializer(
+            self.order, many=True, context={"steps": self.steps}
+        ).data
+
+        # filter_list = get_filters(df, columns)
+        filtered_data, pagination_total = get_filtered_data(data, columns, filters)
+
+        return {
+            'dataNum': len(data),
+            'paginationTotal': pagination_total,
+            'filters': get_filters(df, columns),
+            'filteredData': filtered_data
+        }
+
+
     # Flat representation of which users should see this DataLab when they load the dashboard
     def refresh_access(self):
         users = set(
@@ -217,3 +239,114 @@ class Datalab(Document):
 
         self.permitted_users = list(users)
         self.save()
+
+"""UTILITY FUNCTIONS"""
+def get_filters(df, columns):
+    filters = {}
+    for item in columns:
+        # Generate list of filters
+        column_name = item['field']
+        field_type = item['details']['field_type']
+        if field_type == 'list':
+            options = item['details']['options']
+            filters[column_name] = list(map(lambda x: {'text': x['label'], 'value': x['value']}, options))
+        elif field_type == 'checkbox':
+            filters[column_name] = [
+                {'text': 'False', 'value': False},
+                {'text': 'True', 'value': True},
+            ]
+        elif field_type == 'checkbox-group':
+            fields = item['details']['fields']
+            filters[column_name] = list(map(lambda x: {'text': x, 'value': x}, fields))
+        elif field_type == 'date':
+            filters[column_name] = list(map(lambda x: {'text': x[:10], 'value': x}, df[column_name].dropna().unique()))
+        else:
+            # Text, Number, Non-fields
+            filters[column_name] = list(map(lambda x: {'text': x, 'value': x}, df[column_name].dropna().unique()))
+    return filters
+
+
+def get_filtered_data(data, columns, filters):
+    # TODO: JAMES 2020
+
+    pprint(filters)
+
+    # TODO MAYBE FIX Everything empty
+    if len(filters.keys()) == 0: return (data, len(data))
+    # pprint(columns)
+    # pprint(data)
+    filtered_data = list(filter(lambda row: not remove_row_filter(row, filters, columns), data))
+
+    # Search
+    # TODO TEST
+    if not filters['search'] == '':
+        filtered_data = list(filter(lambda row: not remove_row_search(row, filters, columns), filtered_data))
+
+    # Sort
+    sort_field = filters['sortField']
+    sort_order = filters['sortOrder']
+    if filters['sortField'] is not None and filters['sortOrder'] is not None:
+        # TODO TEST DESCEND + NEUTRAL
+        column = next((item for item in columns if item['field'] == sort_field), None)
+        filtered_data.sort(key=lambda x: sort_column_key(x, sort_field, column), reverse=sort_order=='descend')
+
+    pagination_total = len(filtered_data)
+
+    # Pagination
+    # TODO: TEST
+    # TODO: PAGINATION DEETS TO FRONTEND
+    filtered_data = paginate_data(filtered_data, filters['page'], filters['results'])
+    # pprint(filtered_data)
+    return filtered_data, pagination_total
+
+def remove_row_filter(row, filters, columns):
+    """True to remove row; False to keep row"""
+    res = False
+    for item in columns:
+        column_name = item['field']
+        field_type = item['details']['field_type']
+
+        if field_type == 'checkbox-group':
+            mode_and = filters['checkboxGroupFilterModes'][column_name]
+            filter_list = filters['checkboxGroupFilter'][column_name]
+            if len(filter_list) == 0:
+                continue
+            else:
+                # Check if remove row
+                if mode_and:
+                    # AND
+                    if not all(row[f'{column_name}__{item}'] for item in filter_list): return True
+                else:
+                    # OR
+                    if not any(row[f'{column_name}__{item}'] for item in filter_list): return True
+        else:
+            if column_name not in filters['filters']: continue
+            filter_list = filters['filters'][column_name]
+            if len(filter_list) == 0: continue
+
+            if field_type == 'list':
+                if row[column_name] is None: return True
+                if not any(item in row[column_name] for item in filter_list): return True
+            elif field_type == 'checkbox':
+                if not any(row[column_name] == item for item in filter_list): return True
+            else:
+                if not any(row[column_name] == item for item in filter_list): return True
+    return False
+
+def remove_row_search(row, filters, columns):
+    print(str(row))
+    return not (filters['search'].lower() in str(row).lower())
+
+def sort_column_key(x, sort_field, column):
+    if column['details']['field_type'] == 'checkbox-group':
+        checkbox_fields = column['details']['fields']
+        # print([x[f'{sort_field}__{field}'] for field in checkbox_fields])
+        # print(list(filter(lambda field: x[f'{sort_field}__{field}'], checkbox_fields)))
+        return len(list(filter(lambda field: x[f'{sort_field}__{field}'], checkbox_fields)))
+    else:
+        return x[sort_field]
+
+def paginate_data(data, page, results):
+    start = (page - 1) * results
+    end = start + results
+    return data[start:end]

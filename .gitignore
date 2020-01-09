@@ -42,3 +42,5 @@ tmp/*
 
 # Data files for docker containers
 data/*
+
+notes.md

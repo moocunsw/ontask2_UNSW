@@ -31,6 +31,7 @@ from datasource.models import Datasource
 from form.models import Form
 
 import logging
+import time
 
 logger = logging.getLogger("ontask")
 
@@ -429,6 +430,54 @@ def AccessDataLab(request, id):
 
     if datalab.container.has_full_permission(request.user):
         serializer = DatalabSerializer(datalab)
+        return Response(serializer.data)
+
+    user_values = []
+    if datalab.emailAccess:
+        user_values.append(request.user.email.lower())
+    if datalab.ltiAccess:
+        try:
+            lti_object = lti.objects.get(user=request.user.id)
+            user_values.extend([value.lower() for value in lti_object.payload.values()])
+        except:
+            pass
+
+    data = pd.DataFrame(data=datalab.data)
+    accessible_records = data[data[datalab.permission].str.lower().isin(user_values)]
+
+    if not len(accessible_records):
+        # User does not have access to any records, so return a 403
+        raise PermissionDenied()
+
+    if datalab.restriction == "private":
+        data = accessible_records
+
+    default_group = (
+        accessible_records[datalab.groupBy].iloc[0] if datalab.groupBy else None
+    )
+
+    data.replace({pd.np.nan: None}, inplace=True)
+    serializer = RestrictedDatalabSerializer(
+        datalab,
+        context={"data": data.to_dict("records"), "default_group": default_group},
+    )
+
+    logger.info(
+        "datalab.access",
+        extra={"user": request.user.email, "datalab": str(datalab.id)},
+    )
+
+    return Response(serializer.data)
+
+@api_view(["POST"])
+def AccessDataLabTemp(request, id):
+    try:
+        datalab = Datalab.objects.get(id=id)
+    except:
+        raise NotFound()
+
+    if datalab.container.has_full_permission(request.user):
+        serializer = DatalabSerializer(datalab, context={"filters": request.data})
         return Response(serializer.data)
 
     user_values = []
