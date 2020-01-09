@@ -274,26 +274,23 @@ class DataLabForm extends React.Component {
       ...(fields || []).map(field => field.name)
     ];
 
-    console.log(fields)
-
     const groups = groupBy ? new Set(data.map(item => item[groupBy])) : [];
 
     if (layout === "table") {
-      const tableColumns = columns.map((column, columnIndex) => ({
-        title: column,
-        dataIndex: column,
-        key: columnIndex,
-        // sorter: (a, b) => (a[column] || "").localeCompare(b[column] || ""),
-        // render: (text, record) => {
-        //   const field = (fields || []).find(field => field.name === column);
-        //   let value = column in record ? text : null;
-
-        //   if (field && field.type === "checkbox-group")
-        //     value = _.pick(record, field.columns.map(column => `${field.name}__${column}`));
-
-        //   return <Field readOnly={!field} field={field} value={value} />;
-        }
-      ));
+      const tableColumns = columns.map((column, columnIndex) => {
+        const field = (fields || []).find(field => field.name === column);
+        return ({
+          title: column,
+          dataIndex: column,
+          field: !!field ?
+            field
+            : {
+              type: 'text',
+              columns: [],
+              options: []
+            },
+        });
+      });
 
       return (
         <div>
@@ -330,6 +327,8 @@ class DataLabForm extends React.Component {
               pageSizeOptions: ["10", "25", "50", "100"]
             }}
             rowKey={(record, i) => i}
+            isReadOnly={(record, column) => true}
+            isPreview
           />
         </div>
       );

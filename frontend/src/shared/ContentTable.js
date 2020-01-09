@@ -124,7 +124,7 @@ const ContentTable = (props) => {
 
     if (type === "checkbox-group") {
       const customFilter =
-      type === "checkbox-group" ?
+      (type === "checkbox-group" && !isPreview) ?
         {
           filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) =>
             renderCheckboxGroupFilter({
@@ -143,7 +143,7 @@ const ContentTable = (props) => {
       return {
         ...column,
         ...customFilter,
-        sorter: true,
+        sorter: !isPreview,
         render: (value, record, index) => {
           value = _.pick(record, columns.map(column => `${dataIndex}__${column}`));
           return (
@@ -161,12 +161,11 @@ const ContentTable = (props) => {
     else {
       return {
         ...column,
-        filters: filters && filters[dataIndex], // TODO - BACKEND
-        sorter: ['checkbox', 'list'].includes(type) ? null : true,
+        filters: (!isPreview && filters) ? filters[dataIndex] : null,
+        sorter: (isPreview || ['checkbox', 'list'].includes(type)) ? null : true,
         render: (value, record, index) => {
           return (
             <Field
-              // primaryKey={}
               readOnly={isReadOnly(record, column.dataIndex)}
               field={field}
               value={value}
@@ -273,12 +272,6 @@ const renderCheckboxGroupFilter = (props) => {
             };
             setTableState({...tableState, filterOptions})
             confirm();
-            // setTableState({
-
-            // })
-            // setFilterModes({...filterModes, [columnName]: !!selectedKeys[0]});
-            // setCustomFilters({...customFilters, [columnName]: columns.filter((column, i) => !!selectedKeys[i+1])});
-            // confirm();
           }}
         >
           OK
@@ -290,8 +283,6 @@ const renderCheckboxGroupFilter = (props) => {
             const { filterOptions } = tableState;
             filterOptions.checkboxFilters = {...filterOptions.checkboxFilters, [columnName]: [] };
             filterOptions.checkboxFilterModes = {...filterOptions.checkboxFilterModes, [columnName]: !!selectedKeys[0]};
-            // setFilterModes({...filterModes, [columnName]: !!selectedKeys[0]});
-            // setCustomFilters({...customFilters, [columnName]: [] });
             confirm();
           }}
         >
