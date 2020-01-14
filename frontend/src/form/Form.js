@@ -45,7 +45,6 @@ class Form extends React.Component {
           ])
         ];
         const { filter_details } = form;
-        console.log(filter_details);
         this.setState({
           fetching: false,
           form,
