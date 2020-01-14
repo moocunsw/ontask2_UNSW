@@ -292,6 +292,7 @@ class DataLabForm extends React.Component {
                 ? data.filter(item => _.get(item, groupBy) === grouping)
                 : data
             }
+            groups={[]}
             scroll={{ x: (columns.length - 1) * 175 }}
             pagination={{
               showSizeChanger: true,

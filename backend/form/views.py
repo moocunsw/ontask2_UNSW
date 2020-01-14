@@ -12,7 +12,7 @@ import csv
 
 from .serializers import FormSerializer, RestrictedFormSerializer
 from .models import Form
-from .utils import get_filters, get_filtered_data
+from .utils import get_filters, get_column_filter, get_filtered_data
 
 from accounts.models import lti
 from datalab.utils import get_relations
@@ -22,9 +22,6 @@ from datalab.serializers import DatalabSerializer
 import logging
 
 logger = logging.getLogger("ontask")
-
-from pprint import pprint
-
 
 class ListForms(APIView):
     def post(self, request):
@@ -245,6 +242,7 @@ class AccessForm(APIView):
             {
                 'field': form.primary,
                 'details': {
+                    'label': form.primary,
                     'field_type': 'text',
                     'options': [],
                     'fields': []
@@ -257,6 +255,7 @@ class AccessForm(APIView):
                 {
                     'field': field.name,
                     'details': {
+                        'label': field.name,
                         'field_type': field.type,
                         'options': field.options,
                         'fields': field.columns
@@ -265,14 +264,17 @@ class AccessForm(APIView):
             )
 
         df = pd.DataFrame.from_dict(data)
+        group_column = next(column for column in columns if column['field'] == form.groupBy) if form.groupBy is not None else None
 
-        filtered_data, pagination_total = get_filtered_data(data, columns, filters)
+        filtered_data, pagination_total = get_filtered_data(data, columns, filters, form.groupBy)
+
         return (
             {
                 'dataNum': len(data),
                 'paginationTotal': pagination_total,
                 'filters': get_filters(df, columns),
-                'filteredData': filtered_data
+                'filteredData': filtered_data,
+                'groups': get_column_filter(df, group_column)
             }
         )
 
