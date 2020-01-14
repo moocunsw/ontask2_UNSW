@@ -79,9 +79,9 @@ class DataLab extends React.Component {
 
   updateDatalab = dataLab => {
     const { selected } = this.state;
-    console.log(selected);
     this.setState({
-      selected: { ...selected, ...dataLab }
+      selected: { ...selected, ...dataLab },
+      filter_details: dataLab.filter_details
     });
   };
 

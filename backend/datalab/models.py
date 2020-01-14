@@ -18,9 +18,6 @@ from datasource.models import Datasource
 
 from form.utils import get_filters, get_filtered_data
 
-from pprint import pprint
-import logging
-
 class Column(EmbeddedDocument):
     stepIndex = IntField()
     field = StringField()
@@ -216,6 +213,8 @@ class Datalab(Document):
 
     def filter_details(self, filters):
         data = self.data
+
+        if filters is None: filters = {}
         df = pd.DataFrame.from_dict(data)
 
         from datalab.serializers import OrderItemSerializer

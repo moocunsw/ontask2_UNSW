@@ -1,3 +1,5 @@
+import numpy as np
+
 def get_filters(df, columns):
     filters = {}
     for item in columns:
@@ -16,10 +18,10 @@ def get_filters(df, columns):
             fields = item['details']['fields']
             filters[column_name] = list(map(lambda x: {'text': x, 'value': x}, fields))
         elif field_type == 'date':
-            filters[column_name] = list(map(lambda x: {'text': x[:10], 'value': x}, df[column_name].dropna().unique()))
+            filters[column_name] = list(map(lambda x: {'text': x[:10], 'value': x}, df[column_name].replace('', np.nan).dropna().unique()))
         else:
             # Text, Number, Non-fields
-            filters[column_name] = list(map(lambda x: {'text': x, 'value': x}, df[column_name].dropna().unique()))
+            filters[column_name] = list(map(lambda x: {'text': x, 'value': x}, df[column_name].replace('', np.nan).dropna().unique()))
     return filters
 
 
