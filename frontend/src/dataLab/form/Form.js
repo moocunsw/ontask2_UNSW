@@ -319,7 +319,6 @@ class DataLabForm extends React.Component {
 
             if (field && field.type === "checkbox-group")
               value = _.pick(record, field.columns.map(column => `${field.name}__${column}`));
-            // console.log(record.item);
             return (
               <Field
                 primaryKey={_.get(record.item, primary)} // Force re-render of the field component after changing the selected record

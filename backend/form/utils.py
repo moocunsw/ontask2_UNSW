@@ -1,13 +1,14 @@
 import numpy as np
 
 def get_filters(df, columns):
+    """Gets a list of filter options for each column in the dataframe."""
     filters = {}
     for item in columns:
         # Generate list of filters
         column_name = item['field']
         field_type = item['details']['field_type']
         if field_type == 'list':
-            options = item['details']['options']
+            options = sorted(item['details']['options'], key=lambda x: x['label'])
             filters[column_name] = list(map(lambda x: {'text': x['label'], 'value': x['value']}, options))
         elif field_type == 'checkbox':
             filters[column_name] = [
@@ -15,17 +16,19 @@ def get_filters(df, columns):
                 {'text': 'True', 'value': True},
             ]
         elif field_type == 'checkbox-group':
-            fields = item['details']['fields']
-            filters[column_name] = list(map(lambda x: {'text': x, 'value': x}, fields))
+            filters[column_name] = sorted(item['details']['fields'])
         elif field_type == 'date':
-            filters[column_name] = list(map(lambda x: {'text': x[:10], 'value': x}, df[column_name].replace('', np.nan).dropna().unique()))
+            filters[column_name] = list(map(lambda x: {'text': x[:10], 'value': x}, sorted(df[column_name].replace('', np.nan).dropna().unique())))
         else:
             # Text, Number, Non-fields
-            filters[column_name] = list(map(lambda x: {'text': x, 'value': x}, df[column_name].replace('', np.nan).dropna().unique()))
+            filters[column_name] = list(map(lambda x: {'text': x, 'value': x}, sorted(df[column_name].replace('', np.nan).dropna().unique())))
     return filters
 
 
 def get_filtered_data(data, columns, filters):
+    """Retrieves the filtered data after performing the table filter, search, sort, paginate"""
+
+    # Filter
     if len(filters.keys()) == 0: return (data, len(data))
     filtered_data = list(filter(lambda row: not remove_row_filter(row, filters, columns), data))
 
@@ -46,11 +49,14 @@ def get_filtered_data(data, columns, filters):
 
     # Pagination
     filtered_data = paginate_data(filtered_data, filters['pagination'])
-    # pprint(filtered_data)
     return filtered_data, pagination_total
 
 def remove_row_filter(row, filters, columns):
-    """True to remove row; False to keep row"""
+    """
+    Utility function for get_filtered_data.
+    Filtering algorithm.
+    Returns True to remove row; False to keep row of dataset
+    """
     res = False
     for item in columns:
         column_name = item['field']
@@ -84,10 +90,18 @@ def remove_row_filter(row, filters, columns):
     return False
 
 def remove_row_search(row, filters, columns):
-    # TODO: Can improve
+    """
+    Utility function for get_filtered_data.
+    Searching algorithm.
+    """
+    # TODO: Can improve by disregarding True, False values, etc
     return not (filters['search'].lower() in str(row).lower())
 
 def sort_column_key(x, sort_field, column):
+    """
+    Utility function for get_filtered_data.
+    Sorting algorithm by column field type.
+    """
     if column['details']['field_type'] == 'checkbox-group':
         checkbox_fields = column['details']['fields']
         return len(list(filter(lambda field: x[f'{sort_field}__{field}'], checkbox_fields)))
@@ -96,6 +110,7 @@ def sort_column_key(x, sort_field, column):
         return x[sort_field]
 
 def paginate_data(data, pagination):
+    """Utility function for get_filtered_data"""
     page = pagination['current']
     pageSize = pagination['pageSize']
     start = (page - 1) * pageSize

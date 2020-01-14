@@ -121,7 +121,6 @@ const ContentTable = (props) => {
 
     fetchData(filterOptions, setTableState);
   }
-  // console.log(filterOptions);
 
   // const totalDataAmount = dataSource ? dataSource.length : 0;
   // const tableDataAmount = tableData.length; // TODO: Fix based on filtering as well
@@ -143,7 +142,7 @@ const ContentTable = (props) => {
               setTableState,
               tableState,
               columnName: dataIndex,
-              columns,
+              columns: filters[dataIndex],
             })
         }
       : {};
