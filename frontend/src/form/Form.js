@@ -299,12 +299,8 @@ class Form extends React.Component {
     } = this.state;
 
     const filters = filter_details && filter_details.filters;
+    const groups = filter_details && filter_details.groups;
     const filteredData = filter_details ? filter_details.filteredData : [];
-
-    const groups =
-      form && form.groupBy
-        ? new Set(form.data.map(item => item[form.groupBy]))
-        : [];
 
     return (
       <div className="form">
@@ -491,37 +487,10 @@ class Form extends React.Component {
                       </div>
                     ) : (
                       <div>
-                        {form.groupBy && [
-                          <div style={{ marginBottom: 5 }} key="text">
-                            Group by:
-                          </div>,
-                          <Select
-                            style={{ width: "100%", maxWidth: 350 }}
-                            key="groups"
-                            allowClear
-                            showSearch
-                            value={grouping}
-                            onChange={grouping => this.setState({ grouping })}
-                          >
-                            {[...groups].sort().map((group, i) => (
-                              <Select.Option value={group} key={i}>
-                                {group ? group : <i>No value</i>}
-                              </Select.Option>
-                            ))}
-                          </Select>,
-                          <Divider key="divider" />
-                        ]}
-
                         <ContentTable
                           showSearch
                           columns={tableColumns}
-                          dataSource={
-                            grouping !== undefined && grouping !== null
-                              ? filteredData.filter(
-                                  item => _.get(item, form.groupBy) === grouping
-                                )
-                              : filteredData
-                          }
+                          dataSource={filteredData}
                           scroll={{ x: (tableColumns.length - 1) * 175 }}
                           rowKey={(record, i) => i}
                           rowClassName={record => {
@@ -535,6 +504,7 @@ class Form extends React.Component {
                           onFieldUpdate={this.onFieldUpdate}
                           fetchData={this.fetchData}
                           filters={filters}
+                          groups={groups}
                         />
                       </div>
                     )}

@@ -7,10 +7,8 @@ import {
   Tooltip,
   Button,
   notification,
-  Radio,
-  Select
+  Radio
 } from "antd";
-import memoize from "memoize-one";
 import _ from "lodash";
 
 import Visualisation from "./Visualisation";
@@ -23,7 +21,7 @@ import ContentTable from "../../shared/ContentTable";
 class Data extends React.Component {
   constructor(props) {
     super(props);
-    const { defaultGroup, data } = this.props;
+    const { defaultGroup } = this.props;
 
     this.state = {
       editable: {},
@@ -109,61 +107,34 @@ class Data extends React.Component {
 
   initialiseColumnsTemp = () => {
     // Convert Columns into a suitable structure for ContentTable
-    const { steps, columns, data } = this.props;
-    if (data.length > 1)
-      return columns
-        .filter(column => column.visible)
-        .map(column => {
-          return ({
-            fixed: column.pin ? "left" : false,
-            className: "column",
-            dataIndex: column.details.label,
-            field: {
-              name: column.details.label,
-              type: column.details.field_type,
-              columns: column.details.fields,
-              options: column.details.options
-            },
-            title: (
-              <span
-                className={`column_header ${_.get(
-                  steps,
-                  `${column.stepIndex}.type`,
-                  ""
-                )}`}
-              >
-                {this.TruncatedLabel(column.details.label)}
-              </span>
-            ),
-          })
-        });
-    // TODO: TEST WITH ONE COLUMN
-    return [
-      {
-        title: "Field",
-        dataIndex: "column.details.label"
-      },
-      {
-        title: "Value",
-        dataIndex: "value",
-        render: (value, record) => {
-          if (record.column.details.field_type === "checkbox-group")
-            value = _.pick(record.item, record.column.details.fields);
-
-          return (
-            <Field
-              readOnly
-              field={{
-                type: record.column.details.field_type,
-                columns: record.column.details.fields,
-                options: record.column.details.options
-              }}
-              value={value}
-            />
-          );
-        }
-      }
-    ];
+    // TODO: REFIX implementation for single data row (into two column structure)
+    const { steps, columns } = this.props;
+    return columns
+      .filter(column => column.visible)
+      .map(column => {
+        return ({
+          fixed: column.pin ? "left" : false,
+          className: "column",
+          dataIndex: column.details.label,
+          field: {
+            name: column.details.label,
+            type: column.details.field_type,
+            columns: column.details.fields,
+            options: column.details.options
+          },
+          title: (
+            <span
+              className={`column_header ${_.get(
+                steps,
+                `${column.stepIndex}.type`,
+                ""
+              )}`}
+            >
+              {this.TruncatedLabel(column.details.label)}
+            </span>
+          ),
+        })
+      });
   };
 
   TruncatedLabel = label =>
@@ -386,7 +357,6 @@ class Data extends React.Component {
     const {
       data,
       filter_details,
-      groupBy,
       columns,
       updateDatalab,
       fetchData,
@@ -398,23 +368,16 @@ class Data extends React.Component {
       edit,
       saved,
       view,
-      exporting,
-      grouping
+      exporting
     } = this.state;
 
-    const { filters, filteredData } = filter_details;
+    const { filters, filteredData, groups } = filter_details;
 
     // Columns are initialised on every render, so that changes to the sort
     // in local state can be reflected in the table columns. Otherwise the
     // columns would ideally only be initialised when receiving the build
     // for the first time
     const orderedColumns = this.initialiseColumnsTemp();
-
-    // Similarly, the table data is initialised on every render, so that
-    // changes to values in form columns can be reflected
-    // const tableData = this.initialiseData(data, search);
-
-    const groups = groupBy ? new Set(data.map(item => item[groupBy])) : [];
 
     return (
       <div className="data" style={{ marginTop: 25 }}>
@@ -450,31 +413,11 @@ class Data extends React.Component {
               <Radio.Button value="data">Data</Radio.Button>
               <Radio.Button value="details">Details</Radio.Button>
             </Radio.Group>
-          </div>,
-
-          <div className="filter" style={{ marginTop: 10 }} key="search">
-            {groupBy && (
-              <Select
-                style={{ width: "100%", maxWidth: 225, marginRight: 15 }}
-                placeholder="Group by"
-                allowClear
-                showSearch
-                value={grouping}
-                onChange={grouping => this.setState({ grouping })}
-              >
-                {[...groups].sort().map((group, i) => (
-                  <Select.Option value={group} key={i}>
-                    {group ? group : <i>No value</i>}
-                  </Select.Option>
-                ))}
-              </Select>
-            )}
-
           </div>
         ]}
 
         <div className="data_manipulation">
-          {filteredData.length > 1 && (
+          {data.length > 1 && (
             <Visualisation
               visible={visualisation}
               columns={columns}
@@ -488,20 +431,9 @@ class Data extends React.Component {
               showSearch
               rowKey={(record, index) => index}
               columns={orderedColumns}
-              dataSource={
-                data.length > 1
-                  ? grouping !== undefined
-                    ? filteredData.filter(
-                        item => _.get(item, groupBy) === grouping
-                      )
-                    : filteredData
-                  : columns.map((column, i) => ({
-                      column,
-                      value: _.get(data[0], column.details.label),
-                      item: data[0]
-                    }))
-              }
+              dataSource={filteredData}
               filters={filters}
+              groups={groups}
               scroll={{ x: (orderedColumns.length - 1) * 175 }}
               fetchData={fetchData}
               rowClassName={record =>

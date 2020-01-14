@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Checkbox, Divider, Input, Switch, Table } from "antd";
+import { Checkbox, Divider, Input, Select, Switch, Table } from "antd";
 import _ from "lodash";
 
 import Field from "./Field";
@@ -12,13 +12,8 @@ const { Search } = Input;
 // TODO: Search Enter (depends on performance)
 // TODO: Fix sort can only be ascending????
 // TODO: CLEANUP
-/*
-  TODO: TESTING
-    - GROUP?
-    - Single Columns?
-    - Restricted Users
-    - TODO: testing
-*/
+// TODO: FIX ISSUE WITH DATAVIZ WITH 0 DATA
+// TODO: TEST FORM GROUPBY
 
 // Generate Initial Filters for every checkboxgroup field
 const initialiseFilterStates = (columns) => {
@@ -40,6 +35,7 @@ const ContentTable = (props) => {
     dataSource,
     isPreview,
     filters,
+    groups,
     fetchData,
     isReadOnly,
     onFieldUpdate
@@ -94,19 +90,26 @@ const ContentTable = (props) => {
         search: "",
         checkboxFilters: initialFilters,         // Fields selected
         checkboxFilterModes: initialFilterModes, // False: OR; True: AND
+        grouping: undefined
       },
       loading: false
     }
   );
 
   const { filterOptions, loading } = tableState;
-  const { pagination, search } = filterOptions;
+  const { pagination, search, grouping } = filterOptions;
 
   const handleSearch = (search) => {
     const filterOptions = {...tableState.filterOptions, search};
 
     fetchData(filterOptions, setTableState);
   };
+
+  const handleGroup = (grouping) => {
+    const filterOptions = {...tableState.filterOptions, grouping};
+
+    fetchData(filterOptions, setTableState);
+  }
 
   const handleFilterChange = (pagination, filters, sorter) => {
     const filterOptions = {
@@ -186,20 +189,41 @@ const ContentTable = (props) => {
 
   return (
     <div>
-      { showSearch &&
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <Search
-            style={{ width: "auto", marginRight: '15px' }}
-            placeholder="Search..."
-            value={search}
-            onChange={(e) => handleSearch(e.target.value)}
-          />
-          {/* <div>
-            {tableDataAmount} records selected out of {totalDataAmount} (
-            {totalDataAmount - tableDataAmount} filtered out)
-          </div> */}
-        </div>
-      }
+      <div
+        style={{display: 'flex'}}
+      >
+        {
+          (groups === null || groups.length === 1) ? null :
+          <Select
+            style={{ width: "100%", maxWidth: '225px', marginRight: '15px' }}
+            placeholder="Group by"
+            allowClear
+            showSearch
+            value={grouping}
+            onChange={handleGroup}
+          >
+            {groups.map((group, i) => (
+              <Select.Option value={group.value} key={i}>
+                {group.text}
+              </Select.Option>
+            ))}
+          </Select>
+        }
+        { showSearch &&
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <Search
+              style={{ width: "auto", marginRight: '15px' }}
+              placeholder="Search..."
+              value={search}
+              onChange={(e) => handleSearch(e.target.value)}
+            />
+            {/* <div>
+              {tableDataAmount} records selected out of {totalDataAmount} (
+              {totalDataAmount - tableDataAmount} filtered out)
+            </div> */}
+          </div>
+        }
+      </div>
       <Divider />
       <Table
         {...antdTableProps}
@@ -257,7 +281,7 @@ const renderCheckboxGroupFilter = (props) => {
                 setSelectedKeys(selectedKeyCopy);
               }}
             >
-              {filter}
+              {filter.text}
             </Checkbox>
           </li>
         ))}

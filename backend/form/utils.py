@@ -3,34 +3,43 @@ import numpy as np
 def get_filters(df, columns):
     """Gets a list of filter options for each column in the dataframe."""
     filters = {}
-    for item in columns:
+    for column in columns:
         # Generate list of filters
-        column_name = item['field']
-        field_type = item['details']['field_type']
-        if field_type == 'list':
-            options = sorted(item['details']['options'], key=lambda x: x['label'])
-            filters[column_name] = list(map(lambda x: {'text': x['label'], 'value': x['value']}, options))
-        elif field_type == 'checkbox':
-            filters[column_name] = [
-                {'text': 'False', 'value': False},
-                {'text': 'True', 'value': True},
-            ]
-        elif field_type == 'checkbox-group':
-            filters[column_name] = sorted(item['details']['fields'])
-        elif field_type == 'date':
-            filters[column_name] = list(map(lambda x: {'text': x[:10], 'value': x}, sorted(df[column_name].replace('', np.nan).dropna().unique())))
-        else:
-            # Text, Number, Non-fields
-            filters[column_name] = list(map(lambda x: {'text': x, 'value': x}, sorted(df[column_name].replace('', np.nan).dropna().unique())))
+        filters[column['details']['label']] = get_column_filter(df, column)
     return filters
 
+def get_column_filter(df, column):
+    if column is None: return []
+    column_name = column['details']['label']
+    field_type = column['details']['field_type']
+    if field_type == 'list':
+        options = sorted(column['details']['options'], key=lambda x: x['label'])
+        return list(map(lambda x: {'text': x['label'], 'value': x['value']}, options))
+    elif field_type == 'checkbox':
+        return [
+            {'text': 'False', 'value': False},
+            {'text': 'True', 'value': True},
+        ]
+    elif field_type == 'checkbox-group':
+        return list(map(lambda x: {'text': x, 'value': x}, sorted(column['details']['fields'])))
+    elif field_type == 'date':
+        return list(map(lambda x: {'text': x[:10], 'value': x}, sorted(df[column_name].replace('', np.nan).dropna().unique())))
+    else:
+        # Text, Number, Non-fields
+        return list(map(lambda x: {'text': x, 'value': x}, sorted(df[column_name].replace('', np.nan).dropna().unique())))
 
-def get_filtered_data(data, columns, filters):
+def get_filtered_data(data, columns, filters, groupby):
     """Retrieves the filtered data after performing the table filter, search, sort, paginate"""
-
-    # Filter
     if len(filters.keys()) == 0: return (data, len(data))
-    filtered_data = list(filter(lambda row: not remove_row_filter(row, filters, columns), data))
+
+    filtered_data = data.copy()
+
+    # Group
+    if 'grouping' in filters and groupby is not None:
+        group_column = next(column for column in columns if column['details']['label'] == groupby)
+        filtered_data = list(filter(lambda row: not remove_row_filter(row, filters, [group_column], mode='group'), filtered_data))
+    # filtered_data = list(filter(lambda row: not remove_row_filter(row, filters, [group]), data))
+    filtered_data = list(filter(lambda row: not remove_row_filter(row, filters, columns, mode='filter'), filtered_data))
 
     # Search
     if not filters['search'] == '':
@@ -41,8 +50,7 @@ def get_filtered_data(data, columns, filters):
         sort_field = filters['sorter']['field']
         sort_order = filters['sorter']['order']
         if sort_field is not None and sort_order is not None:
-            print(sort_field, sort_order)
-            column = next((item for item in columns if item['field'] == sort_field), None)
+            column = next((item for item in columns if item['details']['label'] == sort_field), None)
             filtered_data.sort(key=lambda x: sort_column_key(x, sort_field, column), reverse=sort_order=='descend')
 
     pagination_total = len(filtered_data)
@@ -51,7 +59,7 @@ def get_filtered_data(data, columns, filters):
     filtered_data = paginate_data(filtered_data, filters['pagination'])
     return filtered_data, pagination_total
 
-def remove_row_filter(row, filters, columns):
+def remove_row_filter(row, filters, columns, mode='filter'):
     """
     Utility function for get_filtered_data.
     Filtering algorithm.
@@ -59,12 +67,17 @@ def remove_row_filter(row, filters, columns):
     """
     res = False
     for item in columns:
-        column_name = item['field']
+        column_name = item['details']['label']
         field_type = item['details']['field_type']
 
         if field_type == 'checkbox-group':
-            mode_and = filters['checkboxFilterModes'][column_name]
-            filter_list = filters['checkboxFilters'][column_name]
+            if mode == 'filter':
+                mode_and = filters['checkboxFilterModes'][column_name]
+                filter_list = filters['checkboxFilters'][column_name]
+            else:
+                #TODO TEST
+                mode_and = False
+                filter_list = [filters['grouping']]
             if len(filter_list) == 0:
                 continue
             else:
@@ -76,10 +89,14 @@ def remove_row_filter(row, filters, columns):
                     # OR
                     if not any(row[f'{column_name}__{item}'] for item in filter_list): return True
         else:
-            if column_name not in filters['filters']: continue
-            filter_list = filters['filters'][column_name]
-            if len(filter_list) == 0: continue
+            if mode == 'filter':
+                if column_name not in filters['filters']: continue
+                filter_list = filters['filters'][column_name]
+            else:
+                # TODO TEST
+                filter_list = [filters['grouping']]
 
+            if len(filter_list) == 0: continue
             if field_type == 'list':
                 if row[column_name] is None: return True
                 if not any(item in row[column_name] for item in filter_list): return True

@@ -16,7 +16,7 @@ import pandas as pd
 from container.models import Container
 from datasource.models import Datasource
 
-from form.utils import get_filters, get_filtered_data
+from form.utils import get_filters, get_column_filter, get_filtered_data
 
 class Column(EmbeddedDocument):
     stepIndex = IntField()
@@ -207,7 +207,6 @@ class Datalab(Document):
                 combined_data = combined_data.assign(**computed_fields)
 
         combined_data.replace({pd.np.nan: None}, inplace=True)
-        print(datetime.now() - now)
 
         return combined_data.to_dict("records")
 
@@ -222,14 +221,17 @@ class Datalab(Document):
             self.order, many=True, context={"steps": self.steps}
         ).data
 
-        # filter_list = get_filters(df, columns)
-        filtered_data, pagination_total = get_filtered_data(data, columns, filters)
+        group_column = next(column for column in columns if column['details']['label'] == self.groupBy) if self.groupBy is not None else None
+
+        filtered_data, pagination_total = get_filtered_data(data, columns, filters, self.groupBy)
 
         return {
             'dataNum': len(data),
             'paginationTotal': pagination_total,
             'filters': get_filters(df, columns),
-            'filteredData': filtered_data
+            'filteredData': filtered_data,
+            'groups': get_column_filter(df, group_column)
+            # 'groups': []
         }
 
 
