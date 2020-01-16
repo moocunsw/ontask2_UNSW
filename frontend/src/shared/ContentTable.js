@@ -8,7 +8,6 @@ const { Search } = Input;
 
 // TODO: Better Solution to <checkbox_group column>__<checkbox_group group>
 // TODO: Implement Vertical View (w/ backend)
-// TODO: Fix sort can only be ascending????
 
 // Generate Initial Filters for every checkboxgroup field
 const initialiseFilterStates = (columns) => {
@@ -93,7 +92,7 @@ const ContentTable = (props) => {
   );
 
   const { filterOptions, loading } = tableState;
-  const { pagination, search, grouping } = filterOptions;
+  const { pagination, search, grouping, sorter } = filterOptions;
 
   const handleSearch = (search) => {
     const filterOptions = {...tableState.filterOptions, search};
@@ -117,6 +116,15 @@ const ContentTable = (props) => {
       },
       filters
     };
+
+    // Manually Change Sorter (weird Bug where sorter gets stuck on ascend)
+    if (_.isEqual(filterOptions, tableState.filterOptions)) {
+      const sortModes = [null, 'ascend', 'descend'];
+      const currSortOrder = filterOptions.sorter.order;
+      const newSortOrder = sortModes[(sortModes.indexOf(currSortOrder) + 1) % sortModes.length];
+
+      filterOptions.sorter.order = newSortOrder;
+    }
 
     fetchData(filterOptions, setTableState);
   }
@@ -147,6 +155,7 @@ const ContentTable = (props) => {
         ...column,
         ...customFilter,
         sorter: !isPreview,
+        sortOrder: sorter.field === dataIndex && sorter.order,
         render: (value, record, index) => {
           value = _.pick(record, columns.map(column => `${dataIndex}__${column}`));
           return (
@@ -166,6 +175,7 @@ const ContentTable = (props) => {
         ...column,
         filters: (!isPreview && filters) ? filters[dataIndex] : null,
         sorter: (isPreview || ['checkbox', 'list'].includes(type)) ? null : true,
+        sortOrder: sorter.field === dataIndex && sorter.order,
         render: (value, record, index) => {
           return (
             <Field
