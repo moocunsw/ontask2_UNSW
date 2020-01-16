@@ -6,14 +6,10 @@ import Field from "./Field";
 
 const { Search } = Input;
 
-// TODO: Boolean column named <checkbox_group column>__<checkbox_group group> issue
-// TODO: Potentially (implement table + vertical view)
-// TODO: Performance Improvements **
+// TODO: Better Solution to <checkbox_group column>__<checkbox_group group>
+// TODO: Implement Vertical View (w/ backend)
 // TODO: Search Enter (depends on performance)
 // TODO: Fix sort can only be ascending????
-// TODO: CLEANUP
-// TODO: FIX ISSUE WITH DATAVIZ WITH 0 DATA
-// TODO: TEST FORM GROUPBY
 
 // Generate Initial Filters for every checkboxgroup field
 const initialiseFilterStates = (columns) => {
@@ -145,7 +141,7 @@ const ContentTable = (props) => {
               setTableState,
               tableState,
               columnName: dataIndex,
-              columns: filters[dataIndex],
+              columns: filters[dataIndex].map(filter => filter.value),
             })
         }
       : {};
@@ -281,7 +277,7 @@ const renderCheckboxGroupFilter = (props) => {
                 setSelectedKeys(selectedKeyCopy);
               }}
             >
-              {filter.text}
+              {filter}
             </Checkbox>
           </li>
         ))}
