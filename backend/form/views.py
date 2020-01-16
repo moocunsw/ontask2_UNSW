@@ -353,7 +353,10 @@ class AccessForm(APIView):
             extra={"id": id, "user": request.user.email, "payload": request.data},
         )
 
-        return Response(status=HTTP_200_OK)
+        # Get & Return New Filter Details
+        [form, data, editable_records, default_group] = self.get_data(id)
+
+        return Response(self.get_filter_details(form, data, request.data.get("filterOptions")), status=HTTP_200_OK)
 
     def post(self, request, id):
         """Apply Filter"""

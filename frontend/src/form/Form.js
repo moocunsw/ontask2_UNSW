@@ -81,7 +81,7 @@ class Form extends React.Component {
     );
   };
 
-  onFieldUpdate = (record, value, dataIndex, column, index) => {
+  onFieldUpdate = (record, value, dataIndex, column, index, filterOptions) => {
     const { form } = this.state;
     const field = form.fields.find(field => field.name === dataIndex);
 
@@ -90,7 +90,8 @@ class Form extends React.Component {
       column ? column: field.name,
       value,
       index,
-      field.name
+      field.name,
+      filterOptions
     )
   };
 
@@ -134,7 +135,7 @@ class Form extends React.Component {
               field;
 
             if (field && field.type === "checkbox-group")
-              value = _.pick(record, field.columns.map(column => `${field.name}__${column}`));
+              value = _.pick(record.item, field.columns.map(column => `${field.name}__${column}`));
 
             return (
               <Field
@@ -159,7 +160,7 @@ class Form extends React.Component {
     }
   };
 
-  handleSubmit = (primary, field, value, index, loadingKey) => {
+  handleSubmit = (primary, field, value, index, loadingKey, filterOptions) => {
     const { match } = this.props;
     const { saved, form } = this.state;
 
@@ -172,11 +173,11 @@ class Form extends React.Component {
     const loading = message.loading("Saving form...", 0);
     apiRequest(`/form/${match.params.id}/access/`, {
       method: "PATCH",
-      payload: { primary, field, value },
-      onSuccess: () => {
+      payload: { primary, field, value, filterOptions },
+      onSuccess: (filter_details) => {
         const savedRecord = _.get(saved, primary, {});
         savedRecord[loadingKey] = true;
-        this.setState({ saved: { ...saved, [primary]: savedRecord } }, () => {
+        this.setState({ filter_details, saved: { ...saved, [primary]: savedRecord } }, () => {
           this.updateSuccess = setTimeout(() => {
             savedRecord[loadingKey] = false;
             this.setState({ saved: { ...saved, [primary]: savedRecord } });
@@ -196,7 +197,7 @@ class Form extends React.Component {
   };
 
   fetchData = (payload, setTableState) => {
-    setTableState({filterOptions: payload, loading: true});
+    setTableState && setTableState({filterOptions: payload, loading: true});
     const { match, history } = this.props;
 
     apiRequest(`/form/${match.params.id}/access/`, {
@@ -204,11 +205,13 @@ class Form extends React.Component {
       payload: payload,
       onSuccess: filter_details => {
         this.setState({filter_details});
-        payload.pagination.total = filter_details.paginationTotal;
-        setTableState({filterOptions: payload, loading: false});
+        if (!!setTableState && !!payload) {
+          payload.pagination.total = filter_details.paginationTotal;
+          setTableState({filterOptions: payload, loading: false});
+        }
       },
       onError: (error, status) => {
-        setTableState({filterOptions: payload, loading: false});
+        setTableState && setTableState({filterOptions: payload, loading: false});
         if (status === 403) {
           history.replace("/forbidden");
           return;
@@ -299,7 +302,7 @@ class Form extends React.Component {
     } = this.state;
 
     const filters = filter_details && filter_details.filters;
-    const groups = filter_details && filter_details.groups;
+    const groups = filter_details ? filter_details.groups: [];
     const filteredData = filter_details ? filter_details.filteredData : [];
 
     return (
@@ -397,9 +400,9 @@ class Form extends React.Component {
                                   })
                                 }
                               >
-                                {[...groups].sort().map((group, i) => (
-                                  <Select.Option value={group} key={i}>
-                                    {group ? group : <i>No value</i>}
+                                {groups.map((group, i) => (
+                                  <Select.Option value={group.value} key={i}>
+                                    {group.text}
                                   </Select.Option>
                                 ))}
                               </Select>

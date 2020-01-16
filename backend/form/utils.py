@@ -30,6 +30,7 @@ def get_column_filter(df, column):
 
 def get_filtered_data(data, columns, filters, groupby):
     """Retrieves the filtered data after performing the table filter, search, sort, paginate"""
+    if filters is None: return (data, len(data))
     if len(filters.keys()) == 0: return (data, len(data))
 
     filtered_data = data.copy()
