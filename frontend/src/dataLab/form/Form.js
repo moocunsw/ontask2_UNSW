@@ -297,6 +297,7 @@ class DataLabForm extends React.Component {
       layout
     } = getFieldsValue();
 
+    const filterNum = filter_details && { total: filter_details.dataNum, filtered: filter_details.paginationTotal };
     const filters = filter_details && filter_details.filters;
     const groups = filter_details ? filter_details.groups: [];
     const filteredData = filter_details ? filter_details.filteredData : [];
@@ -325,26 +326,8 @@ class DataLabForm extends React.Component {
 
       return (
         <div>
-          {/* {groupBy && [
-            <div style={{ marginBottom: 5 }} key="text">
-              Group by:
-            </div>,
-            <Select
-              style={{ width: "100%", maxWidth: 350 }}
-              key="groups"
-              allowClear
-              showSearch
-              onChange={grouping => this.setState({ grouping })}
-            >
-              {[...groups].sort().map((group, i) => (
-                <Select.Option value={group} key={i}>
-                  {group ? group : <i>No value</i>}
-                </Select.Option>
-              ))}
-            </Select>,
-            <Divider key="divider" />
-          ]} */}
           <ContentTable
+            showSearch
             fields={fields}
             columns={tableColumns}
             dataSource={filteredData}
@@ -358,7 +341,7 @@ class DataLabForm extends React.Component {
             fetchData={this.fetchData}
             filters={filters}
             groups={groups}
-            // isPreview
+            filterNum={filterNum}
           />
         </div>
       );

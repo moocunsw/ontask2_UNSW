@@ -371,6 +371,7 @@ class Data extends React.Component {
       exporting
     } = this.state;
 
+    const filterNum = filter_details && { total: filter_details.dataNum, filtered: filter_details.paginationTotal };
     const filters = filter_details && filter_details.filters;
     const groups = filter_details ? filter_details.groups: [];
     const filteredData = filter_details ? filter_details.filteredData : [];
@@ -444,6 +445,7 @@ class Data extends React.Component {
                   : ""
               }
               isReadOnly={(record, column) => true}
+              filterNum={filterNum}
             />
           )}
 
