@@ -417,7 +417,7 @@ class Data extends React.Component {
         ]}
 
         <div className="data_manipulation">
-          {data.length > 1 && (
+          {filteredData.length > 1 && (
             <Visualisation
               visible={visualisation}
               columns={columns}
