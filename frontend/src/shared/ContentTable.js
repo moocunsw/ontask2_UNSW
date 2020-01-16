@@ -196,7 +196,7 @@ const ContentTable = (props) => {
         style={{display: 'flex'}}
       >
         {
-          (groups === null || groups.length === 1) ? null :
+          (groups === null || groups.length < 1) ? null :
           <Select
             style={{ width: "100%", maxWidth: '225px', marginRight: '15px' }}
             placeholder="Group by"
