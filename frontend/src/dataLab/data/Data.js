@@ -371,7 +371,9 @@ class Data extends React.Component {
       exporting
     } = this.state;
 
-    const { filters, filteredData, groups } = filter_details;
+    const filters = filter_details && filter_details.filters;
+    const groups = filter_details ? filter_details.groups: [];
+    const filteredData = filter_details ? filter_details.filteredData : [];
 
     // Columns are initialised on every render, so that changes to the sort
     // in local state can be reflected in the table columns. Otherwise the
