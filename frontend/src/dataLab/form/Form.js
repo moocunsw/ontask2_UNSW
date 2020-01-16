@@ -44,23 +44,8 @@ class DataLabForm extends React.Component {
   }
 
   componentDidMount = () => {
-    const { selectedId, history } = this.props;
-
-    apiRequest(`/form/${selectedId}/access/`, {
-      method: "POST",
-      payload: null,
-      onSuccess: filter_details => {
-        this.setState({filter_details});
-      },
-      onError: (error, status) => {
-        if (status === 403) {
-          history.replace("/forbidden");
-          return;
-        }
-        history.replace("/error");
-      }
-    });
-  }
+    this.fetchData();
+  };
 
   componentDidUpdate(prevProps) {
     const { formDetails, form } = this.props;
@@ -77,7 +62,7 @@ class DataLabForm extends React.Component {
   }
 
   fetchData = (payload, setTableState) => {
-    setTableState({filterOptions: payload, loading: true});
+    setTableState && setTableState({filterOptions: payload, loading: true});
     const { selectedId, history } = this.props;
 
     apiRequest(`/form/${selectedId}/access/`, {
@@ -85,11 +70,13 @@ class DataLabForm extends React.Component {
       payload: payload,
       onSuccess: filter_details => {
         this.setState({filter_details});
-        payload.pagination.total = filter_details.paginationTotal;
-        setTableState({filterOptions: payload, loading: false});
+        if (!!setTableState && !!payload) {
+          payload.pagination.total = filter_details.paginationTotal;
+          setTableState({filterOptions: payload, loading: false});
+        }
       },
       onError: (error, status) => {
-        setTableState({filterOptions: payload, loading: false});
+        setTableState && setTableState({filterOptions: payload, loading: false});
         if (status === 403) {
           history.replace("/forbidden");
           return;
@@ -97,7 +84,7 @@ class DataLabForm extends React.Component {
         history.replace("/error");
       }
     });
-  }
+  };
 
   addField = () => {
     const { fields, fieldKeys } = this.state;
@@ -282,7 +269,7 @@ class DataLabForm extends React.Component {
     } = getFieldsValue();
 
     const filters = filter_details && filter_details.filters;
-    const groups = filter_details && filter_details.groups;
+    const groups = filter_details ? filter_details.groups: [];
     const filteredData = filter_details ? filter_details.filteredData : [];
 
     const columns = [
@@ -361,7 +348,7 @@ class DataLabForm extends React.Component {
             );
 
             if (field && field.type === "checkbox-group")
-              value = _.pick(record, field.columns.map(column => `${field.name}__${column}`));
+              value = _.pick(record.item, field.columns.map(column => `${field.name}__${column}`));
             return (
               <Field
                 primaryKey={_.get(record.item, primary)} // Force re-render of the field component after changing the selected record
@@ -394,9 +381,9 @@ class DataLabForm extends React.Component {
                 })
               }
             >
-              {[...groups].sort().map((group, i) => (
-                <Select.Option value={group} key={i}>
-                  {group ? group : <i>No value</i>}
+              {groups.map((group, i) => (
+                <Select.Option value={group.value} key={i}>
+                  {group.text}
                 </Select.Option>
               ))}
             </Select>
@@ -949,6 +936,7 @@ class DataLabForm extends React.Component {
             placement="right"
             onClose={() => this.setState({ preview: false })}
             visible={preview}
+            destroyOnClose
           >
             {this.preview()}
             <Alert

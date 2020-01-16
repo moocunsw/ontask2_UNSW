@@ -161,7 +161,7 @@ const ContentTable = (props) => {
               readOnly={isReadOnly(record, column.dataIndex)}
               field={field}
               value={value}
-              onSave={(value, column) => onFieldUpdate(record, value, dataIndex, column, index)}
+              onSave={(value, column) => onFieldUpdate(record, value, dataIndex, column, index, filterOptions)}
             />
           )
         }
@@ -179,7 +179,7 @@ const ContentTable = (props) => {
               readOnly={isReadOnly(record, column.dataIndex)}
               field={field}
               value={value}
-              onSave={(value, column) => onFieldUpdate(record, value, dataIndex, column, index)}
+              onSave={(value, column) => onFieldUpdate(record, value, dataIndex, column, index, filterOptions)}
             />
           );
         }
