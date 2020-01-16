@@ -8,7 +8,6 @@ const { Search } = Input;
 
 // TODO: Better Solution to <checkbox_group column>__<checkbox_group group>
 // TODO: Implement Vertical View (w/ backend)
-// TODO: Search Enter (depends on performance)
 // TODO: Fix sort can only be ascending????
 
 // Generate Initial Filters for every checkboxgroup field
@@ -34,7 +33,8 @@ const ContentTable = (props) => {
     groups,
     fetchData,
     isReadOnly,
-    onFieldUpdate
+    onFieldUpdate,
+    filterNum
   } = props;
 
   // Note that columns, dataSource, pagination, onChange are excluded
@@ -120,9 +120,6 @@ const ContentTable = (props) => {
 
     fetchData(filterOptions, setTableState);
   }
-
-  // const totalDataAmount = dataSource ? dataSource.length : 0;
-  // const tableDataAmount = tableData.length; // TODO: Fix based on filtering as well
 
   const newColumns = columns.map(column => {
     const { dataIndex, field } = column;
@@ -211,12 +208,24 @@ const ContentTable = (props) => {
               style={{ width: "auto", marginRight: '15px' }}
               placeholder="Search..."
               value={search}
-              onChange={(e) => handleSearch(e.target.value)}
+              onChange={e => {
+                const filterOptions = {...tableState.filterOptions, search: e.target.value};
+                setTableState({ filterOptions });
+              }}
+              onSearch={value => handleSearch(value)}
             />
-            {/* <div>
-              {tableDataAmount} records selected out of {totalDataAmount} (
-              {totalDataAmount - tableDataAmount} filtered out)
-            </div> */}
+          </div>
+        }
+        { filterNum &&
+          <div
+            style={{
+              display: 'flex',
+              flexFlow: 'column',
+              justifyContent: 'center'
+            }}
+          >
+            {filterNum.filtered} records selected out of {filterNum.total} (
+            {filterNum.total - filterNum.filtered} filtered out)
           </div>
         }
       </div>

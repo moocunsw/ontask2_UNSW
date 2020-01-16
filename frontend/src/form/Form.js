@@ -301,6 +301,7 @@ class Form extends React.Component {
       upload
     } = this.state;
 
+    const filterNum = filter_details && { total: filter_details.dataNum, filtered: filter_details.paginationTotal };
     const filters = filter_details && filter_details.filters;
     const groups = filter_details ? filter_details.groups: [];
     const filteredData = filter_details ? filter_details.filteredData : [];
@@ -508,6 +509,7 @@ class Form extends React.Component {
                           fetchData={this.fetchData}
                           filters={filters}
                           groups={groups}
+                          filterNum={filterNum}
                         />
                       </div>
                     )}
