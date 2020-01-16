@@ -29,6 +29,8 @@ import Field from "../../shared/Field";
 import ContentTable from "../../shared/ContentTable";
 
 // TODO: FIX ISSUE WHERE SOMETIMES CONTENT EDITOR PREVIEW DOESN'T WORK (FILTER UNDEFINED?)
+// TODO: FIX incorrect data when switching forms
+// TODO: FIX No search by field leads to weird rendering of select record
 
 class DataLabForm extends React.Component {
   state = { singleRecordIndex: 0 };
