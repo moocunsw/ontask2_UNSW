@@ -238,6 +238,8 @@ class AccessForm(APIView):
 
     def get_filter_details(self, form, data, filters={}):
         # Create Columns
+
+        # Add Primary Field
         columns = [
             {
                 'field': form.primary,
@@ -249,6 +251,20 @@ class AccessForm(APIView):
                 }
             }
         ]
+
+        # Add Additional Fields
+        for field in form.visibleFields:
+            columns.append(
+                {
+                    'field': field,
+                    'details': {
+                        'label': field,
+                        'field_type': 'text',
+                        'options': [],
+                        'fields': []
+                    }
+                }
+            )
 
         for field in form.fields:
             columns.append(
@@ -264,7 +280,7 @@ class AccessForm(APIView):
             )
 
         df = pd.DataFrame.from_dict(data)
-        group_column = next(column for column in columns if column['field'] == form.groupBy) if form.groupBy is not None else None
+        group_column = next(column for column in columns if column['details']['label'] == form.groupBy) if form.groupBy is not None else None
 
         filtered_data, pagination_total = get_filtered_data(data, columns, filters, form.groupBy)
 

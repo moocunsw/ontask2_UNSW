@@ -45,6 +45,25 @@ class DataLabForm extends React.Component {
     });
   }
 
+  componentDidMount = () => {
+    const { selectedId, history } = this.props;
+
+    apiRequest(`/form/${selectedId}/access/`, {
+      method: "POST",
+      payload: null,
+      onSuccess: filter_details => {
+        this.setState({filter_details});
+      },
+      onError: (error, status) => {
+        if (status === 403) {
+          history.replace("/forbidden");
+          return;
+        }
+        history.replace("/error");
+      }
+    });
+  }
+
   componentDidUpdate(prevProps) {
     const { formDetails, form } = this.props;
 
@@ -57,6 +76,29 @@ class DataLabForm extends React.Component {
       });
       form.resetFields();
     }
+  }
+
+  fetchData = (payload, setTableState) => {
+    setTableState({filterOptions: payload, loading: true});
+    const { selectedId, history } = this.props;
+
+    apiRequest(`/form/${selectedId}/access/`, {
+      method: "POST",
+      payload: payload,
+      onSuccess: filter_details => {
+        this.setState({filter_details});
+        payload.pagination.total = filter_details.paginationTotal;
+        setTableState({filterOptions: payload, loading: false});
+      },
+      onError: (error, status) => {
+        setTableState({filterOptions: payload, loading: false});
+        if (status === 403) {
+          history.replace("/forbidden");
+          return;
+        }
+        history.replace("/error");
+      }
+    });
   }
 
   addField = () => {
@@ -257,7 +299,7 @@ class DataLabForm extends React.Component {
 
   preview = () => {
     const { form, data } = this.props;
-    const { singleRecordIndex, grouping, searchField } = this.state;
+    const { singleRecordIndex, grouping, searchField, filter_details } = this.state;
     const { getFieldsValue } = form;
     const {
       primary,
@@ -268,13 +310,15 @@ class DataLabForm extends React.Component {
       layout
     } = getFieldsValue();
 
+    const filters = filter_details && filter_details.filters;
+    const groups = filter_details && filter_details.groups;
+    const filteredData = filter_details ? filter_details.filteredData : [];
+
     const columns = [
       primary,
       ...visibleFields,
       ...(fields || []).map(field => field.name)
     ];
-
-    const groups = groupBy ? new Set(data.map(item => item[groupBy])) : [];
 
     if (layout === "table") {
       const tableColumns = columns.map((column, columnIndex) => {
@@ -294,7 +338,7 @@ class DataLabForm extends React.Component {
 
       return (
         <div>
-          {groupBy && [
+          {/* {groupBy && [
             <div style={{ marginBottom: 5 }} key="text">
               Group by:
             </div>,
@@ -312,16 +356,11 @@ class DataLabForm extends React.Component {
               ))}
             </Select>,
             <Divider key="divider" />
-          ]}
+          ]} */}
           <ContentTable
             fields={fields}
             columns={tableColumns}
-            dataSource={
-              grouping !== undefined || grouping !== null
-                ? data.filter(item => _.get(item, groupBy) === grouping)
-                : data
-            }
-            groups={[]}
+            dataSource={filteredData}
             scroll={{ x: (columns.length - 1) * 175 }}
             pagination={{
               showSizeChanger: true,
@@ -329,7 +368,10 @@ class DataLabForm extends React.Component {
             }}
             rowKey={(record, i) => i}
             isReadOnly={(record, column) => true}
-            isPreview
+            fetchData={this.fetchData}
+            filters={filters}
+            groups={groups}
+            // isPreview
           />
         </div>
       );
