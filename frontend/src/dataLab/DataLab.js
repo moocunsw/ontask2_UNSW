@@ -75,13 +75,12 @@ class DataLab extends React.Component {
       // Therefore redirect the user back to the container list
       history.replace("/dashboard");
     }
-  }
+  };
 
   updateDatalab = dataLab => {
     const { selected } = this.state;
     this.setState({
-      selected: { ...selected, ...dataLab },
-      filter_details: dataLab.filter_details
+      selected: { ...selected, ...dataLab }
     });
   };
 
