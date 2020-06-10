@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.11/ref/settings/
 """
 
+from ontask.env import *
 import os
 import sys
 import mongoengine
@@ -26,8 +27,6 @@ EMAIL_BATCH_SIZE = None
 EMAIL_BATCH_PAUSE = None
 DB_HOST = None
 
-from ontask.env import *
-
 if os.environ.get("ONTASK_DEVELOPMENT"):
     FRONTEND_DOMAIN = (
         "https://localhost:3000"
@@ -42,7 +41,7 @@ DEBUG = os.environ.get("DJANGO_DEBUG")
 # RabbitMQ served via Docker container (docker-compose)
 CELERY_BROKER_URL = "amqp://rabbitmq"
 
-# If no DB_HOST in env.py is specified, then it is assumed that MongoDB 
+# If no DB_HOST in env.py is specified, then it is assumed that MongoDB
 # is served via Docker container (docker-compose)
 # For the user model via Djongo
 DATABASES = {
