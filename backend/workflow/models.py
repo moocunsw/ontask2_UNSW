@@ -142,7 +142,7 @@ class Workflow(Document):
     def form_names(self):
         # return self.datalab.name
         forms = Form.objects.filter(datalab=self.datalab)
-        return [form.name for form in forms]
+        return [form.name for form in forms if form.emailAccess]
 
 
     @property
@@ -296,14 +296,7 @@ class Workflow(Document):
 
         condition_ids = list(set(re.findall(r"conditionid=\"(.*?)\"", content)))
         condition_tag_locations = generate_condition_tag_locations(content)
-        email_settings = self.emailSettings
         forms = Form.objects.filter(datalab=self.datalab)
-
-        if email_settings is not None:
-            email_field = email_settings.field
-        else:
-            email_field = None
-            # TODO: Require Supply Email Field?
         """
         Generate HTML string for each student based on conditions and attributes
         Algo:
@@ -313,7 +306,6 @@ class Workflow(Document):
         2. Clean the HTML (replace <attribute>, <condition>, <rule>) to actual HTML tags
         """
         for item_index, item in enumerate(filtered_data):
-            email = item[email_field] if email_field is not None else None
             html = content
 
             # 1
@@ -326,7 +318,7 @@ class Workflow(Document):
             # 2
             html = strip_tags(html, "condition")
             html = strip_tags(html, "rule")
-            html = parse_attribute(html, item, order, forms, email)
+            html = parse_attribute(html, item, order, forms)
             html = parse_link(html, item, order)
 
             result.append(html)

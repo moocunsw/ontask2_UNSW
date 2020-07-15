@@ -85,23 +85,27 @@ def parse_link(html, item, order):
         html
     )
 
-def replace_attribute(match, item, order, forms, email):
+def replace_attribute(match, item, order, forms):
     """Generates new HTML replacement string for attribute with the attribute value and mark styles"""
     field = match.group(2)
 
     prefix, field = field.split(":",1)
     if prefix == 'link':
-        if email is not None:
-            form_id = forms.filter(name=field)[0].id
-            # Get Form ID from Field
+        # Anonymous Form Link
+        form = forms.filter(name=field)[0]
+        if form.emailAccess:
+            email = item[form.permission]
 
             iat = datetime.utcnow()
             exp = iat + timedelta(days=90)
             token = jwt.encode({'email': email, 'iat': iat, 'exp': exp}, SECRET_KEY, algorithm='HS256').decode()
-            link = f'{FRONTEND_DOMAIN}/form/{form_id}/?token={token}'
+            link = f'{FRONTEND_DOMAIN}/form/{form.id}/?token={token}'
 
             link_html = f'<a href={link}>{link}</a>'
             return link_html
+        else:
+            # No Form emailAccess granted, remove block
+            return ''
     elif prefix == 'field':
         value = item.get(field)
 
@@ -133,7 +137,7 @@ def replace_attribute(match, item, order, forms, email):
         # Code should not reach here
         return ''
 
-def parse_attribute(html, item, order, forms, email):
+def parse_attribute(html, item, order, forms):
     """
     Parse <attribute>field: ... </attribute> in html string based on student.
     Only checks for
@@ -141,7 +145,7 @@ def parse_attribute(html, item, order, forms, email):
     """
     return re.sub(
         r"<attribute>((?:<(?:strong|em|u|pre|code|span.*?)>)*)(.*?)((?:</(?:strong|em|u|pre|code|span)>)*)</attribute>",
-        lambda match: replace_attribute(match, item, order, forms, email),
+        lambda match: replace_attribute(match, item, order, forms),
         html
     )
 
