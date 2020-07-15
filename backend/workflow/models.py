@@ -137,6 +137,14 @@ class Workflow(Document):
     def datalab_name(self):
         return self.datalab.name
 
+
+    @property
+    def form_names(self):
+        # return self.datalab.name
+        forms = Form.objects.filter(datalab=self.datalab)
+        return [form.name for form in forms if form.emailAccess]
+
+
     @property
     def options(self):
         modules = []
@@ -288,6 +296,7 @@ class Workflow(Document):
 
         condition_ids = list(set(re.findall(r"conditionid=\"(.*?)\"", content)))
         condition_tag_locations = generate_condition_tag_locations(content)
+        forms = Form.objects.filter(datalab=self.datalab)
         """
         Generate HTML string for each student based on conditions and attributes
         Algo:
@@ -309,7 +318,7 @@ class Workflow(Document):
             # 2
             html = strip_tags(html, "condition")
             html = strip_tags(html, "rule")
-            html = parse_attribute(html, item, order)
+            html = parse_attribute(html, item, order, forms)
             html = parse_link(html, item, order)
 
             result.append(html)

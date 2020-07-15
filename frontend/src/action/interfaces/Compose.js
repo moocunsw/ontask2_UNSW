@@ -315,6 +315,7 @@ class Compose extends React.Component {
           rules={action.rules}
           types={action.options.types}
           order={action.data.order}
+          forms={action.form_names}
           colours={colours}
           onUpdate={this.updateContent}
           onPreview={this.previewContent}
