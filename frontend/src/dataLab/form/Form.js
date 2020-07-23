@@ -28,12 +28,8 @@ import apiRequest from "../../shared/apiRequest";
 import Field from "../../shared/Field";
 import ContentTable from "../../shared/ContentTable";
 
-// TODO: FIX ISSUE WHERE SOMETIMES CONTENT EDITOR PREVIEW DOESN'T WORK (FILTER UNDEFINED?)
-// TODO: FIX incorrect data when switching forms
-// TODO: FIX No search by field leads to weird rendering of select record
-
 class DataLabForm extends React.Component {
-  state = { singleRecordIndex: 0 };
+  state = { singleRecordIndex: 0, preview: false, grouping: null};
 
   componentWillMount() {
     const { columns, formDetails } = this.props;
@@ -49,10 +45,6 @@ class DataLabForm extends React.Component {
     });
   }
 
-  componentDidMount = () => {
-    this.fetchData();
-  };
-
   componentDidUpdate(prevProps) {
     const { formDetails, form } = this.props;
 
@@ -61,36 +53,12 @@ class DataLabForm extends React.Component {
       this.setState({
         fields,
         fieldKeys: fields.map(() => _.uniqueId()),
+        grouping: null,
         error: false
       });
       form.resetFields();
     }
   }
-
-  fetchData = (payload, setTableState) => {
-    setTableState && setTableState({filterOptions: payload, loading: true});
-    const { selectedId, history } = this.props;
-
-    apiRequest(`/form/${selectedId}/access/`, {
-      method: "POST",
-      payload: payload,
-      onSuccess: filter_details => {
-        this.setState({filter_details});
-        if (!!setTableState && !!payload) {
-          payload.pagination.total = filter_details.paginationTotal;
-          setTableState({filterOptions: payload, loading: false});
-        }
-      },
-      onError: (error, status) => {
-        setTableState && setTableState({filterOptions: payload, loading: false});
-        if (status === 403) {
-          history.replace("/forbidden");
-          return;
-        }
-        history.replace("/error");
-      }
-    });
-  };
 
   addField = () => {
     const { fields, fieldKeys } = this.state;
@@ -124,6 +92,9 @@ class DataLabForm extends React.Component {
   };
 
   exportField = () => {
+    /**
+     * Validate Fields, then download file as a .json
+     */
     const { form } = this.props;
 
     form.validateFields(["name", "fields"], (err, payload) => {
@@ -290,7 +261,7 @@ class DataLabForm extends React.Component {
 
   preview = () => {
     const { form, data } = this.props;
-    const { singleRecordIndex, grouping, searchField, filter_details } = this.state;
+    const { singleRecordIndex, grouping, searchField } = this.state;
     const { getFieldsValue } = form;
     const {
       primary,
@@ -301,16 +272,24 @@ class DataLabForm extends React.Component {
       layout
     } = getFieldsValue();
 
-    const filterNum = filter_details && { total: filter_details.dataNum, filtered: filter_details.paginationTotal };
-    const filters = filter_details && filter_details.filters;
-    const groups = filter_details ? filter_details.groups: [];
-    const filteredData = filter_details ? filter_details.filteredData : [];
+    const readOnlyFields = [
+      primary,
+      ...visibleFields
+    ];
 
     const columns = [
       primary,
       ...visibleFields,
       ...(fields || []).map(field => field.name)
     ];
+
+    const groups = groupBy ? new Set(data.map(item => item[groupBy])) : [];
+
+    // Filtering is performed here and not in the server since the data is temporary
+    let filteredData = [...data];
+
+    // Filter Based on Groupby
+    filteredData = grouping ? filteredData.filter(item => _.get(item, groupBy) === grouping) : data;
 
     if (layout === "table") {
       const tableColumns = columns.map((column, columnIndex) => {
@@ -330,8 +309,34 @@ class DataLabForm extends React.Component {
 
       return (
         <div>
+          {groupBy && [
+            <div style={{ marginBottom: 5 }} key="text">
+              Group by:
+            </div>,
+            <Select
+              key="groups"
+              style={{ width: "100%", maxWidth: 350, marginBottom: 10 }}
+              allowClear
+              showSearch
+              onChange={grouping =>
+                this.setState({
+                  grouping,
+                  singleRecordIndex: data.findIndex(
+                    item => _.get(item, groupBy) === grouping
+                  )
+                })
+              }
+            >
+              {[...groups].sort().map((group, i) => (
+                <Select.Option value={group} key={i}>
+                  {group ? group : <i>No value</i>}
+                </Select.Option>
+              ))}
+            </Select>
+          ]}
+
           <ContentTable
-            showSearch
+            isPreview             // Remove Filters
             fields={fields}
             columns={tableColumns}
             dataSource={filteredData}
@@ -341,11 +346,9 @@ class DataLabForm extends React.Component {
               pageSizeOptions: ["10", "25", "50", "100"]
             }}
             rowKey={(record, i) => i}
-            isReadOnly={(record, column) => true}
-            fetchData={this.fetchData}
-            filters={filters}
-            groups={groups}
-            filterNum={filterNum}
+            isReadOnly={(record, column) => readOnlyFields.includes(column)}
+            onFieldUpdate={()=>{}} // Do not perform updates on change
+            fetchData={() => {}}   // Do not change data on filter
           />
         </div>
       );
