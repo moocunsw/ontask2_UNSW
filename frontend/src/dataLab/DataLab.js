@@ -79,6 +79,7 @@ class DataLab extends React.Component {
 
   updateDatalab = dataLab => {
     const { selected } = this.state;
+    this.fetchData(null, null, dataLab.id);
     this.setState({
       selected: { ...selected, ...dataLab }
     });
@@ -107,21 +108,26 @@ class DataLab extends React.Component {
     this.setState({ selected: { ...selected, forms } });
   };
 
-  fetchData = (payload, setTableState) => {
-    setTableState({filterOptions: payload, loading: true});
+  fetchData = (payload, setTableState, datalabId) => {
     const { match, history } = this.props;
-    apiRequest(`/datalab/${match.params.id}/filter/`, {
+
+    setTableState && setTableState({filterOptions: payload, loading: true});
+    if (!datalabId && !match.params.id) return;
+
+    apiRequest(`/datalab/${datalabId || match.params.id}/filter/`, {
       method: "POST",
       payload: payload,
       onSuccess: selected => {
         const { filter_details } = selected;
         this.setState({filter_details});
-        // Update Number of results
-        payload.pagination.total = filter_details.paginationTotal;
-        setTableState({filterOptions: payload, loading: false});
+        if (!!setTableState && !!payload) {
+          // Update Number of results
+          payload.pagination.total = filter_details.paginationTotal;
+          setTableState({filterOptions: payload, loading: false});
+        }
       },
       onError: (error, status) => {
-        setTableState({filterOptions: payload, loading: false});
+        setTableState && setTableState({filterOptions: payload, loading: false});
         if (status === 403) {
           history.replace("/forbidden");
         } else {
