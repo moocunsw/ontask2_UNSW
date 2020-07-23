@@ -12,7 +12,10 @@ def get_column_filter(df, column):
     if column is None: return []
     column_name = column['details']['label']
     field_type = column['details']['field_type']
-    if field_type == 'list':
+
+    if field_type != 'checkbox-group' and column_name not in df: return [] # Applies to forms with no data entered
+
+    elif field_type == 'list':
         options = sorted(column['details']['options'], key=lambda x: x['label'])
         return list(map(lambda x: {'text': x['label'], 'value': x['value']}, options))
     elif field_type == 'checkbox':
@@ -21,7 +24,8 @@ def get_column_filter(df, column):
             {'text': 'True', 'value': True},
         ]
     elif field_type == 'checkbox-group':
-        return list(map(lambda x: {'text': x, 'value': x}, sorted(column['details']['fields'])))
+        existing_fields = filter(lambda x: f'{column_name}__{x}' in df, sorted(column['details']['fields'])) # Applies to checkbox-group fields with no data entered
+        return list(map(lambda x: {'text': x, 'value': x}, existing_fields))
     elif field_type == 'date':
         return list(map(lambda x: {'text': x[:10], 'value': x}, sorted(df[column_name].replace('', np.nan).dropna().unique())))
     else:
@@ -43,7 +47,7 @@ def get_filtered_data(data, columns, filters, groupby):
     filtered_data = list(filter(lambda row: not remove_row_filter(row, filters, columns, mode='filter'), filtered_data))
 
     # Search
-    if not filters['search'] == '':
+    if filters['search'] != '':
         filtered_data = list(filter(lambda row: not remove_row_search(row, filters, columns), filtered_data))
 
     # Sort
@@ -76,7 +80,7 @@ def remove_row_filter(row, filters, columns, mode='filter'):
                 mode_and = filters['checkboxFilterModes'][column_name]
                 filter_list = filters['checkboxFilters'][column_name]
             else:
-                #TODO TEST
+                # Occurs in the rare case when a checkbox-group field was selected in groupby
                 mode_and = False
                 filter_list = [filters['grouping']]
             if len(filter_list) == 0:
@@ -94,7 +98,7 @@ def remove_row_filter(row, filters, columns, mode='filter'):
                 if column_name not in filters['filters']: continue
                 filter_list = filters['filters'][column_name]
             else:
-                # TODO TEST
+                # Handle group-by filtering
                 filter_list = [filters['grouping']]
 
             if len(filter_list) == 0: continue
@@ -122,10 +126,11 @@ def sort_column_key(x, sort_field, column):
     """
     if column['details']['field_type'] == 'checkbox-group':
         checkbox_fields = column['details']['fields']
-        return len(list(filter(lambda field: x[f'{sort_field}__{field}'], checkbox_fields)))
+        return len(list(filter(lambda field: f'{sort_field}__{field}' in x and x[f'{sort_field}__{field}'], checkbox_fields)))
     else:
-        if x[sort_field] is None: return ''
-        return x[sort_field]
+        if sort_field not in x: return ''      # Applies to forms with no data entered
+        elif x[sort_field] is None: return ''
+        return str(x[sort_field])
 
 def paginate_data(data, pagination):
     """Utility function for get_filtered_data"""
