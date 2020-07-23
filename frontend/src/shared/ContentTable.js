@@ -7,7 +7,6 @@ import Field from "./Field";
 const { Search } = Input;
 
 // TODO: Better Solution to <checkbox_group column>__<checkbox_group group>
-// TODO: Implement Vertical View (w/ backend)
 
 // Generate Initial Filters for every checkboxgroup field
 const initialiseFilterStates = (columns) => {

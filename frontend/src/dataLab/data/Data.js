@@ -33,81 +33,80 @@ class Data extends React.Component {
     };
   }
 
+  // initialiseColumns = () => {
+  //   const { steps, columns, data } = this.props;
+
+  //   if (data.length > 1)
+  //     return columns
+  //       .filter(column => column.visible)
+  //       .map(column => ({
+  //         fixed: column.pin ? "left" : false,
+  //         className: "column",
+  //         dataIndex: column.details.label,
+  //         key: column.details.label,
+  //         sorter: (a, b) =>
+  //           (a[column.details.label] || "")
+  //             .toString()
+  //             .localeCompare((b[column.details.label] || "").toString()),
+  //         title: (
+  //           <span
+  //             className={`column_header ${_.get(
+  //               steps,
+  //               `${column.stepIndex}.type`,
+  //               ""
+  //             )}`}
+  //           >
+  //             {this.TruncatedLabel(column.details.label)}
+  //           </span>
+  //         ),
+  //         render: (value, record) => {
+  //           if (column.details.field_type === "checkbox-group")
+  //             value = _.pick(record, column.details.fields);
+
+  //           return (
+  //             <Field
+  //               readOnly
+  //               field={{
+  //                 type: column.details.field_type,
+  //                 columns: column.details.fields,
+  //                 options: column.details.options
+  //               }}
+  //               value={value}
+  //             />
+  //           );
+  //         }
+  //       }));
+
+  //   return [
+  //     {
+  //       title: "Field",
+  //       dataIndex: "column.details.label"
+  //     },
+  //     {
+  //       title: "Value",
+  //       dataIndex: "value",
+  //       render: (value, record) => {
+  //         if (record.column.details.field_type === "checkbox-group")
+  //           value = _.pick(record.item, record.column.details.fields);
+
+  //         return (
+  //           <Field
+  //             readOnly
+  //             field={{
+  //               type: record.column.details.field_type,
+  //               columns: record.column.details.fields,
+  //               options: record.column.details.options
+  //             }}
+  //             value={value}
+  //           />
+  //         );
+  //       }
+  //     }
+  //   ];
+  // };
+
   initialiseColumns = () => {
-    const { steps, columns, data } = this.props;
-
-    if (data.length > 1)
-      return columns
-        .filter(column => column.visible)
-        .map(column => ({
-          fixed: column.pin ? "left" : false,
-          className: "column",
-          dataIndex: column.details.label,
-          key: column.details.label,
-          sorter: (a, b) =>
-            (a[column.details.label] || "")
-              .toString()
-              .localeCompare((b[column.details.label] || "").toString()),
-          title: (
-            <span
-              className={`column_header ${_.get(
-                steps,
-                `${column.stepIndex}.type`,
-                ""
-              )}`}
-            >
-              {this.TruncatedLabel(column.details.label)}
-            </span>
-          ),
-          render: (value, record) => {
-            if (column.details.field_type === "checkbox-group")
-              value = _.pick(record, column.details.fields);
-
-            return (
-              <Field
-                readOnly
-                field={{
-                  type: column.details.field_type,
-                  columns: column.details.fields,
-                  options: column.details.options
-                }}
-                value={value}
-              />
-            );
-          }
-        }));
-
-    return [
-      {
-        title: "Field",
-        dataIndex: "column.details.label"
-      },
-      {
-        title: "Value",
-        dataIndex: "value",
-        render: (value, record) => {
-          if (record.column.details.field_type === "checkbox-group")
-            value = _.pick(record.item, record.column.details.fields);
-
-          return (
-            <Field
-              readOnly
-              field={{
-                type: record.column.details.field_type,
-                columns: record.column.details.fields,
-                options: record.column.details.options
-              }}
-              value={value}
-            />
-          );
-        }
-      }
-    ];
-  };
-
-  initialiseColumnsTemp = () => {
     // Convert Columns into a suitable structure for ContentTable
-    // TODO: REFIX implementation for single data row (into two column structure)
     const { steps, columns } = this.props;
     return columns
       .filter(column => column.visible)
@@ -380,7 +379,7 @@ class Data extends React.Component {
     // in local state can be reflected in the table columns. Otherwise the
     // columns would ideally only be initialised when receiving the build
     // for the first time
-    const orderedColumns = this.initialiseColumnsTemp();
+    const orderedColumns = this.initialiseColumns();
 
     return (
       <div className="data" style={{ marginTop: 25 }}>
