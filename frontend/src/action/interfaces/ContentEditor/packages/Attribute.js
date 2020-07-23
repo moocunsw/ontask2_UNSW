@@ -1,6 +1,6 @@
 import React from "react";
 
-import { Select } from "antd";
+import { Select, Tooltip } from "antd";
 
 function Attribute(options) {
   return {
@@ -12,31 +12,34 @@ function Attribute(options) {
       return () => editor.removeNodeByKey(node.key)
     },
     queries: {
-      renderAttributeButton(editor, order) {
+      renderAttributeButton(editor, items, prefix, placeholder, tooltip, width) {
         return (
-          <Select
-            placeholder="Add a field"
-            size="small"
-            value={undefined}
-            onChange={field => {
-              editor
-                .insertText(field)
-                .moveFocusBackward(field.length)
-                .wrapInline({
-                  type: "attribute",
-                  data: { field }
-                })
-                .moveToEndOfInline();
-            }}
-            className="attribute_select"
-            dropdownMatchSelectWidth={false}
-          >
-            {order.map((item, i) => (
-              <Select.Option value={item} key={i}>
-                {item}
-              </Select.Option>
-            ))}
-          </Select>
+          <Tooltip title={tooltip}>
+            <Select
+              placeholder={placeholder}
+              style={{ width: width }}
+              size="small"
+              value={undefined}
+              onChange={field => {
+                editor
+                  .insertText(field)
+                  .moveFocusBackward(field.length)
+                  .wrapInline({
+                    type: "attribute",
+                    data: { field }
+                  })
+                  .moveToEndOfInline();
+              }}
+              className="attribute_select"
+              dropdownMatchSelectWidth={false}
+            >
+              {items.map((item, i) => (
+                <Select.Option value={`${prefix}:${item}`} key={i}>
+                  {item}
+                </Select.Option>
+              ))}
+            </Select>
+          </Tooltip>
         );
       }
     },

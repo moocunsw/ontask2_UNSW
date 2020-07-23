@@ -140,7 +140,6 @@ function Blocks(options) {
         event.preventDefault();
 
         if (hasParentList && offset === 0 && (nodeType !== "list-item" || parent.nodes.size === 1)) {
-          // console.log("A")
           editor.unwrapBlock(parentType);
           return false;
         }

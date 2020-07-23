@@ -15,6 +15,7 @@ import {
   notification
 } from "antd";
 import _ from "lodash";
+import queryString from 'query-string';
 
 import apiRequest from "../shared/apiRequest";
 import Field from "../shared/Field";
@@ -32,10 +33,24 @@ class Form extends React.Component {
   };
 
   componentWillMount() {
-    const { match, history } = this.props;
+    // Parse Token in URL if any
+    const { history } = this.props;
 
-    apiRequest(`/form/${match.params.id}/access/`, {
+    const params = queryString.parse(history.location.search);
+    const { token } = params;
+
+    this.setState({ token: token });
+  };
+
+  componentDidMount() {
+    const { match, history } = this.props;
+    const { token } = this.state;
+
+    const url = (!!token ? `/form/${match.params.id}/access/${token}/` : `/form/${match.params.id}/access/`);
+
+    apiRequest(url, {
       method: "GET",
+      isAuthenticated: !token,
       onSuccess: form => {
         const columnNames = [
           ...new Set([
@@ -162,7 +177,7 @@ class Form extends React.Component {
 
   handleSubmit = (primary, field, value, index, loadingKey, filterOptions) => {
     const { match } = this.props;
-    const { saved, form } = this.state;
+    const { saved, form, token } = this.state;
 
     const data = form.data;
     data.forEach(item => {
@@ -171,8 +186,12 @@ class Form extends React.Component {
     this.setState({ form: { ...form, data } });
 
     const loading = message.loading("Saving form...", 0);
-    apiRequest(`/form/${match.params.id}/access/`, {
+
+    const url = (!!token ? `/form/${match.params.id}/access/${token}/` : `/form/${match.params.id}/access/`);
+
+    apiRequest(url, {
       method: "PATCH",
+      isAuthenticated: !token,
       payload: { primary, field, value, filterOptions },
       onSuccess: (filter_details) => {
         const savedRecord = _.get(saved, primary, {});
@@ -318,13 +337,15 @@ class Form extends React.Component {
                   </div>
                 ) : (
                   <div>
-                    <Link
-                      to="/dashboard"
-                      style={{ display: "inline-block", marginBottom: 20 }}
-                    >
-                      <Icon type="arrow-left" style={{ marginRight: 5 }} />
-                      <span>Back to dashboard</span>
-                    </Link>
+                    {!!sessionStorage.getItem("group") &&
+                      <Link
+                        to="/dashboard"
+                        style={{ display: "inline-block", marginBottom: 20 }}
+                      >
+                        <Icon type="arrow-left" style={{ marginRight: 5 }} />
+                        <span>Back to dashboard</span>
+                      </Link>
+                    }
 
                     {sessionStorage.getItem("group") === "admin" && (
                       <div style={{ marginBottom: 10 }}>

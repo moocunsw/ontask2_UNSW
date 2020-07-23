@@ -167,7 +167,7 @@ class ContentEditor extends React.Component {
   };
 
   render() {
-    const { order } = this.props;
+    const { order, forms } = this.props;
     const { value, isInside, previewing, saving } = this.state;
 
     return (
@@ -188,7 +188,8 @@ class ContentEditor extends React.Component {
           {this.editor && this.editor.renderBlockButton("paragraph", "Paragraph", "short_text")}
           {this.editor && this.editor.renderBlockButton("numbered-list", "Ordered List", "format_list_numbered")}
           {this.editor && this.editor.renderBlockButton("bulleted-list", "Unordered List", "format_list_bulleted")}
-          {this.editor && this.editor.renderAttributeButton(order)}
+          {this.editor && this.editor.renderAttributeButton(order, 'field', 'Add field', 'Add a dynamic field from the data')}
+          {this.editor && this.editor.renderAttributeButton(forms, 'link', 'Add form link', 'Add an anonymous-access form link (requires Form email access permissions)', '150px')}
         </div>
         <Editor
           className={`content_editor ${isInside ? "isInside" : ""}`}
