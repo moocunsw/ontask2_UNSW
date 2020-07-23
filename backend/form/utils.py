@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 def get_filters(df, columns):
     """Gets a list of filter options for each column in the dataframe."""
@@ -116,7 +117,6 @@ def remove_row_search(row, filters, columns):
     Utility function for get_filtered_data.
     Searching algorithm.
     """
-    # TODO: Can improve by disregarding True, False values, etc
     return not (filters['search'].lower() in str(row).lower())
 
 def sort_column_key(x, sort_field, column):
@@ -134,8 +134,8 @@ def sort_column_key(x, sort_field, column):
 
 def paginate_data(data, pagination):
     """Utility function for get_filtered_data"""
-    page = pagination['current']
     pageSize = pagination['pageSize']
+    page = min(pagination['current'], math.ceil(len(data) / pageSize)) # Handle case where current page exceeds maximum possible pages resulting in no data loaded
     start = (page - 1) * pageSize
     end = start + pageSize
     return data[start:end]
