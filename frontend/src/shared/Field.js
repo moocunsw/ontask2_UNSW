@@ -274,7 +274,9 @@ class Field extends React.Component {
                 return value ? moment(value).format("YYYY-MM-DD") : null;
 
               case "checkbox":
-                return value ? "True" : "False";
+                return value === null
+                  ? null
+                  : value ? "True" : "False";
 
               case "list":
                 if (!value) return null;
