@@ -33,7 +33,8 @@ const ContentTable = (props) => {
     fetchData,
     isReadOnly,
     onFieldUpdate,
-    filterNum
+    filterNum,
+    disableServerUpdate
   } = props;
 
   // Note that columns, dataSource, pagination, onChange are excluded
@@ -240,14 +241,25 @@ const ContentTable = (props) => {
         }
       </div>
       <Divider />
-      <Table
-        {...antdTableProps}
-        columns={newColumns}
-        dataSource={dataSource}
-        loading={loading}
-        pagination={pagination}
-        onChange={handleFilterChange}
-      />
+      {
+        disableServerUpdate ? (
+          <Table
+            {...antdTableProps}
+            columns={newColumns}
+            dataSource={dataSource}
+            loading={loading}
+          />
+          ) : (
+          <Table
+            {...antdTableProps}
+            columns={newColumns}
+            dataSource={dataSource}
+            loading={loading}
+            pagination={pagination}
+            onChange={handleFilterChange}
+          />
+        )
+      }
     </div>
   );
 };

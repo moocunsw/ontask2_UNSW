@@ -337,6 +337,7 @@ class DataLabForm extends React.Component {
 
           <ContentTable
             isPreview             // Remove Filters
+            disableServerUpdate
             fields={fields}
             columns={tableColumns}
             dataSource={filteredData}
