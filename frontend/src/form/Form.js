@@ -218,9 +218,13 @@ class Form extends React.Component {
   fetchData = (payload, setTableState) => {
     setTableState && setTableState({filterOptions: payload, loading: true});
     const { match, history } = this.props;
+    const { token } = this.state;
 
-    apiRequest(`/form/${match.params.id}/access/`, {
+    const url = (!!token ? `/form/${match.params.id}/access/${token}/` : `/form/${match.params.id}/access/`);
+
+    apiRequest(url, {
       method: "POST",
+      isAuthenticated: !token,
       payload: payload,
       onSuccess: filter_details => {
         this.setState({filter_details});
