@@ -228,6 +228,9 @@ class RestrictedDatalabSerializer(DocumentSerializer):
         fields = ["name", "columns", "data", "filter_details", "groupBy", "default_group"]
 
 class FilteredDatalabSerializer(DocumentSerializer):
+    """
+    Use-case - When the user changes table filters
+    """
     filter_details = serializers.SerializerMethodField()
 
     def get_filter_details(self, datalab):

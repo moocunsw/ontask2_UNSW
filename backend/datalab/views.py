@@ -32,7 +32,6 @@ from datasource.models import Datasource
 from form.models import Form
 
 import logging
-import time
 
 logger = logging.getLogger("ontask")
 
