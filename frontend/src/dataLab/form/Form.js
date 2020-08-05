@@ -470,7 +470,7 @@ class DataLabForm extends React.Component {
   };
 
   render() {
-    const { formDetails, form, selectedId } = this.props;
+    const { formDetails, form, selectedId, forms } = this.props;
     const {
       labels,
       fields,
@@ -483,6 +483,14 @@ class DataLabForm extends React.Component {
     const { getFieldDecorator, getFieldValue, getFieldsValue } = form;
 
     const primary = getFieldValue("primary") || _.get(formDetails, "primary");
+
+    // Grab Column Names from other Forms and in the current Datalab (for unique column name error-checking during importing of fields)
+    const otherForms = forms.filter(f => f.id !== selectedId);
+    const otherFormColumns = otherForms.reduce((prev, curr) => prev.concat(curr.fields.map(field => field.name)), []);
+    const datalabFormColumnNames = new Set([
+      ...labels,
+      ...otherFormColumns
+    ]);
 
     return (
       <Form layout="horizontal" style={{ maxWidth: 700, overflow: "hidden" }}>
@@ -743,13 +751,30 @@ class DataLabForm extends React.Component {
               if (file.status === 'done') {
                 const reader = new FileReader();
                 reader.onloadend = (e) => {
-                  // TODO ERROR CHECK FILE CONTENTS
                   const importFields = JSON.parse(e.target.result);
                   const validateKeys = ["name", "type"];
                   const validateTypes = ["text", "list", "number", "date", "checkbox", "checkbox-group"];
                   const isValidImport = importFields instanceof Array && importFields.every(field => {
                     return validateKeys.every(key => field.hasOwnProperty(key)) && validateTypes.includes(field.type)
                   });
+
+                  // Update Form Field Names if duplicate to {name}_{uniqueNum}
+                  const usedColumnNames = new Set(datalabFormColumnNames);
+                  importFields.forEach(field => {
+                    let newFieldName = field.name;
+                    let copyId = 1;
+                    if (usedColumnNames.has(field.name)) {
+                      do {
+                        newFieldName = `${field.name}_${copyId}`;
+                        copyId++;
+                      } while (usedColumnNames.has(newFieldName));
+                    }
+
+                    // Update
+                    field.name = newFieldName;
+                    usedColumnNames.add(newFieldName);
+                  });
+
                   if (isValidImport) {
                     this.setState({
                       fields: importFields,

@@ -307,6 +307,7 @@ class DataLab extends React.Component {
                                   }
                                   updateDatalab={this.updateDatalab}
                                   data={selected.data}
+                                  forms={selected.forms}
                                 />
                               );
                             }}
