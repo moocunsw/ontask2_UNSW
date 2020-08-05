@@ -31,7 +31,7 @@ def get_column_filter(df, column):
         return list(map(lambda x: {'text': x[:10], 'value': x}, sorted(df[column_name].replace('', np.nan).dropna().unique())))
     else:
         # Text, Number, Non-fields
-        return list(map(lambda x: {'text': x, 'value': x}, sorted(df[column_name].replace('', np.nan).dropna().unique())))
+        return list(map(lambda x: {'text': x, 'value': x}, sorted(df[column_name].replace('', np.nan).dropna().unique().astype(str))))
 
 def get_filtered_data(data, columns, filters, groupby):
     """Retrieves the filtered data after performing the table filter, search, sort, paginate"""
