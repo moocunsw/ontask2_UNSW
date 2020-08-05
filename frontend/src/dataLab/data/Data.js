@@ -1,18 +1,14 @@
 import React from "react";
 import {
-  Table,
   Icon,
   Menu,
   Dropdown,
   Popover,
   Tooltip,
   Button,
-  Input,
   notification,
-  Radio,
-  Select
+  Radio
 } from "antd";
-import memoize from "memoize-one";
 import _ from "lodash";
 
 import Visualisation from "./Visualisation";
@@ -20,8 +16,7 @@ import Details from "../details/Details";
 
 import apiRequest from "../../shared/apiRequest";
 import Field from "../../shared/Field";
-
-const Search = Input.Search;
+import ContentTable from "../../shared/ContentTable";
 
 class Data extends React.Component {
   constructor(props) {
@@ -29,49 +24,103 @@ class Data extends React.Component {
     const { defaultGroup } = this.props;
 
     this.state = {
-      sort: {},
       editable: {},
       edit: { field: null, primary: null },
       saved: {},
-      searchTerm: "",
       visualisation: false,
       view: "data",
-      grouping: defaultGroup
+      grouping: defaultGroup,
     };
   }
 
-  initialiseData = memoize((data, searchTerm) => {
-    if (!data) return [];
+  // initialiseColumns = () => {
+  //   const { steps, columns, data } = this.props;
 
-    const term = searchTerm.trim().toLowerCase();
+  //   if (data.length > 1)
+  //     return columns
+  //       .filter(column => column.visible)
+  //       .map(column => ({
+  //         fixed: column.pin ? "left" : false,
+  //         className: "column",
+  //         dataIndex: column.details.label,
+  //         key: column.details.label,
+  //         sorter: (a, b) =>
+  //           (a[column.details.label] || "")
+  //             .toString()
+  //             .localeCompare((b[column.details.label] || "").toString()),
+  //         title: (
+  //           <span
+  //             className={`column_header ${_.get(
+  //               steps,
+  //               `${column.stepIndex}.type`,
+  //               ""
+  //             )}`}
+  //           >
+  //             {this.TruncatedLabel(column.details.label)}
+  //           </span>
+  //         ),
+  //         render: (value, record) => {
+  //           if (column.details.field_type === "checkbox-group")
+  //             value = _.pick(record, column.details.fields);
 
-    const tableData =
-      term === ""
-        ? data
-        : data.filter(row =>
-            String(Object.values(row))
-              .toLowerCase()
-              .includes(term)
-          );
+  //           return (
+  //             <Field
+  //               readOnly
+  //               field={{
+  //                 type: column.details.field_type,
+  //                 columns: column.details.fields,
+  //                 options: column.details.options
+  //               }}
+  //               value={value}
+  //             />
+  //           );
+  //         }
+  //       }));
 
-    return tableData;
-  });
+  //   return [
+  //     {
+  //       title: "Field",
+  //       dataIndex: "column.details.label"
+  //     },
+  //     {
+  //       title: "Value",
+  //       dataIndex: "value",
+  //       render: (value, record) => {
+  //         if (record.column.details.field_type === "checkbox-group")
+  //           value = _.pick(record.item, record.column.details.fields);
+
+  //         return (
+  //           <Field
+  //             readOnly
+  //             field={{
+  //               type: record.column.details.field_type,
+  //               columns: record.column.details.fields,
+  //               options: record.column.details.options
+  //             }}
+  //             value={value}
+  //           />
+  //         );
+  //       }
+  //     }
+  //   ];
+  // };
 
   initialiseColumns = () => {
-    const { steps, columns, data } = this.props;
-
-    if (data.length > 1)
-      return columns
-        .filter(column => column.visible)
-        .map(column => ({
+    // Convert Columns into a suitable structure for ContentTable
+    const { steps, columns } = this.props;
+    return columns
+      .filter(column => column.visible)
+      .map(column => {
+        return ({
           fixed: column.pin ? "left" : false,
           className: "column",
           dataIndex: column.details.label,
-          key: column.details.label,
-          sorter: (a, b) =>
-            (a[column.details.label] || "")
-              .toString()
-              .localeCompare((b[column.details.label] || "").toString()),
+          field: {
+            name: column.details.label,
+            type: column.details.field_type,
+            columns: column.details.fields,
+            options: column.details.options
+          },
           title: (
             <span
               className={`column_header ${_.get(
@@ -83,50 +132,8 @@ class Data extends React.Component {
               {this.TruncatedLabel(column.details.label)}
             </span>
           ),
-          render: (value, record) => {
-            if (column.details.field_type === "checkbox-group")
-              value = _.pick(record, column.details.fields);
-
-            return (
-              <Field
-                readOnly
-                field={{
-                  type: column.details.field_type,
-                  columns: column.details.fields,
-                  options: column.details.options
-                }}
-                value={value}
-              />
-            );
-          }
-        }));
-
-    return [
-      {
-        title: "Field",
-        dataIndex: "column.details.label"
-      },
-      {
-        title: "Value",
-        dataIndex: "value",
-        render: (value, record) => {
-          if (record.column.details.field_type === "checkbox-group")
-            value = _.pick(record.item, record.column.details.fields);
-
-          return (
-            <Field
-              readOnly
-              field={{
-                type: record.column.details.field_type,
-                columns: record.column.details.fields,
-                options: record.column.details.options
-              }}
-              value={value}
-            />
-          );
-        }
-      }
-    ];
+        })
+      });
   };
 
   TruncatedLabel = label =>
@@ -171,7 +178,6 @@ class Data extends React.Component {
 
   FormColumns = stepIndex => {
     const { steps, forms } = this.props;
-    // const { sort, edit } = this.state;
     const { edit } = this.state;
 
     const formId = steps[stepIndex]["form"];
@@ -243,7 +249,7 @@ class Data extends React.Component {
         // },
         render: (text, record, index) => {
           if (field && field.type === "checkbox-group")
-            text = _.pick(record, field.columns);
+            text = _.pick(record, field.columns.map(column => `${field.name}__${column}`));
 
           return (
             <div className="editable-field">
@@ -286,11 +292,11 @@ class Data extends React.Component {
         title: <span className="column_header computed">{truncatedLabel}</span>,
         dataIndex: label,
         key: label,
-        sorter: (a, b) => {
-          a = label in a && a[label] !== null ? a[label] : "";
-          b = label in b && b[label] !== null ? b[label] : "";
-          return a.toString().localeCompare(b.toString());
-        },
+        // sorter: (a, b) => {
+        //   a = label in a && a[label] !== null ? a[label] : "";
+        //   b = label in b && b[label] !== null ? b[label] : "";
+        //   return a.toString().localeCompare(b.toString());
+        // },
         render: text => {
           return <Field readOnly field={field} value={text} />;
         }
@@ -328,10 +334,6 @@ class Data extends React.Component {
     });
   };
 
-  handleChange = (pagination, filter, sort) => {
-    this.setState({ filter, sort });
-  };
-
   componentWillUnmount() {
     clearTimeout(this.updateSuccess);
   }
@@ -353,9 +355,10 @@ class Data extends React.Component {
   render() {
     const {
       data,
-      groupBy,
+      filter_details,
       columns,
       updateDatalab,
+      fetchData,
       selectedId,
       restrictedView
     } = this.props;
@@ -363,26 +366,20 @@ class Data extends React.Component {
       visualisation,
       edit,
       saved,
-      searchTerm,
       view,
-      exporting,
-      grouping
+      exporting
     } = this.state;
+
+    const filterNum = filter_details && { total: filter_details.dataNum, filtered: filter_details.paginationTotal };
+    const filters = filter_details && filter_details.filters;
+    const groups = filter_details ? filter_details.groups: [];
+    const filteredData = filter_details ? filter_details.filteredData : [];
 
     // Columns are initialised on every render, so that changes to the sort
     // in local state can be reflected in the table columns. Otherwise the
     // columns would ideally only be initialised when receiving the build
     // for the first time
     const orderedColumns = this.initialiseColumns();
-
-    // Similarly, the table data is initialised on every render, so that
-    // changes to values in form columns can be reflected
-    const tableData = this.initialiseData(data, searchTerm);
-    const totalDataAmount = data ? data.length : 0;
-
-    const tableDataAmount = tableData.length;
-
-    const groups = groupBy ? new Set(data.map(item => item[groupBy])) : [];
 
     return (
       <div className="data" style={{ marginTop: 25 }}>
@@ -392,7 +389,7 @@ class Data extends React.Component {
               size="large"
               onClick={() => this.setState({ visualisation: true })}
               type="primary"
-              disabled={!tableData.length}
+              disabled={!filteredData.length}
             >
               <Icon type="area-chart" size="large" />
               Visualise
@@ -418,81 +415,37 @@ class Data extends React.Component {
               <Radio.Button value="data">Data</Radio.Button>
               <Radio.Button value="details">Details</Radio.Button>
             </Radio.Group>
-          </div>,
-
-          <div className="filter" style={{ marginTop: 10 }} key="search">
-            {groupBy && (
-              <Select
-                style={{ width: "100%", maxWidth: 225, marginRight: 15 }}
-                placeholder="Group by"
-                allowClear
-                showSearch
-                value={grouping}
-                onChange={grouping => this.setState({ grouping })}
-              >
-                {[...groups].sort().map((group, i) => (
-                  <Select.Option value={group} key={i}>
-                    {group ? group : <i>No value</i>}
-                  </Select.Option>
-                ))}
-              </Select>
-            )}
-
-            <Search
-              placeholder="Search..."
-              value={searchTerm}
-              onChange={e => this.setState({ searchTerm: e.target.value })}
-              style={{ width: "auto", marginRight: 15 }}
-            />
-            <div>
-              {tableDataAmount} records selected out of {totalDataAmount} (
-              {totalDataAmount - tableDataAmount} filtered out)
-            </div>
           </div>
         ]}
 
         <div className="data_manipulation">
-          {tableData.length > 1 && (
+          {filteredData.length > 1 && (
             <Visualisation
               visible={visualisation}
               columns={columns}
-              data={tableData}
+              data={filteredData}
               closeModal={() => this.setState({ visualisation: false })}
             />
           )}
 
           {view === "data" && (
-            <Table
+            <ContentTable
+              showSearch
               rowKey={(record, index) => index}
               columns={orderedColumns}
-              dataSource={
-                data.length > 1
-                  ? grouping !== undefined
-                    ? tableData.filter(
-                        item => _.get(item, groupBy) === grouping
-                      )
-                    : tableData
-                  : columns.map((column, i) => ({
-                      column,
-                      value: _.get(data[0], column.details.label),
-                      item: data[0]
-                    }))
-              }
+              dataSource={filteredData}
+              filters={filters}
+              paginationTotal={filter_details && filter_details.paginationTotal}
+              groups={groups}
               scroll={{ x: (orderedColumns.length - 1) * 175 }}
-              onChange={this.handleChange}
-              pagination={
-                data.length > 1
-                  ? {
-                      showSizeChanger: true,
-                      pageSizeOptions: ["10", "25", "50", "100"]
-                    }
-                  : false
-              }
+              fetchData={fetchData}
               rowClassName={record =>
                 edit.primary in record && saved[record[edit.primary]]
                   ? "saved"
                   : ""
               }
+              isReadOnly={(record, column) => true}
+              filterNum={filterNum}
             />
           )}
 

@@ -12,6 +12,7 @@ import csv
 
 from .serializers import FormSerializer, RestrictedFormSerializer
 from .models import Form
+from .utils import get_filters, get_column_filter, get_filtered_data
 
 from accounts.models import lti
 from datalab.utils import get_relations
@@ -24,7 +25,6 @@ from ontask.settings import SECRET_KEY
 import logging
 
 logger = logging.getLogger("ontask")
-
 
 class ListForms(APIView):
     def post(self, request):
@@ -226,7 +226,7 @@ class AccessForm(APIView):
         form_fields = [form.primary]
         for field in form.fields:
             if field.type == "checkbox-group":
-                form_fields.extend(field.columns)
+                form_fields.extend([f"{field.name}__{column}" for column in field.columns])
             else:
                 form_fields.append(field.name)
 
@@ -254,6 +254,65 @@ class AccessForm(APIView):
 
         return [form, data, editable_records, default_group, email]
 
+    def get_filter_details(self, form, data, filters={}):
+        # Create Columns
+
+        # Add Primary Field
+        columns = [
+            {
+                'field': form.primary,
+                'details': {
+                    'label': form.primary,
+                    'field_type': 'text',
+                    'options': [],
+                    'fields': []
+                }
+            }
+        ]
+
+        # Add Additional Fields
+        for field in form.visibleFields:
+            columns.append(
+                {
+                    'field': field,
+                    'details': {
+                        'label': field,
+                        'field_type': 'text',
+                        'options': [],
+                        'fields': []
+                    }
+                }
+            )
+
+        for field in form.fields:
+            columns.append(
+                {
+                    'field': field.name,
+                    'details': {
+                        'label': field.name,
+                        'field_type': field.type,
+                        'options': field.options,
+                        'fields': field.columns
+                    }
+                }
+            )
+
+        df = pd.DataFrame.from_dict(data)
+        group_column = next(column for column in columns if column['details']['label'] == form.groupBy) if form.groupBy is not None else None
+
+        filtered_data, pagination_total = get_filtered_data(data, columns, filters, form.groupBy)
+
+        return (
+            {
+                'dataNum': len(data),
+                'paginationTotal': pagination_total,
+                'filters': get_filters(df, columns),
+                'filteredData': filtered_data,
+                'groups': get_column_filter(df, group_column)
+            }
+        )
+
+
     def get(self, request, id, token=None):
         [form, data, editable_records, default_group, email] = self.get_data(id, token)
 
@@ -268,9 +327,15 @@ class AccessForm(APIView):
 
         logger.info("form.access", extra={"id": id, "user": email})
 
-        return Response(serializer.data)
+        result = {
+            **serializer.data,
+            'filter_details': self.get_filter_details(form, data)
+        }
+        return Response(result)
+
 
     def patch(self, request, id, token=None):
+        # Data is cleaned up version of form.data
         [form, data, editable_records, default_group, email] = self.get_data(id, token)
 
         primary = request.data.get("primary")
@@ -282,6 +347,7 @@ class AccessForm(APIView):
 
         data = pd.DataFrame(data=form.data)
         if form.primary in data.columns:
+            # Sort dataframe by form.primary
             data.set_index(form.primary, inplace=True)
             data = data.T.to_dict()
             if primary in data:
@@ -298,7 +364,6 @@ class AccessForm(APIView):
 
         # Replace NaN values with None
         data.replace({pd.np.nan: None}, inplace=True)
-
         data = data.to_dict("records")
         form.data = data
         form.save()
@@ -308,8 +373,16 @@ class AccessForm(APIView):
             extra={"id": id, "user": email, "payload": request.data},
         )
 
-        return Response(status=HTTP_200_OK)
+        # Get & Return New Filter Details
+        [form, data, editable_records, default_group, email] = self.get_data(id, token)
 
+        return Response(self.get_filter_details(form, data, request.data.get("filterOptions")), status=HTTP_200_OK)
+
+    def post(self, request, id, token=None):
+        """Apply Filter"""
+        [form, data, editable_records, default_group, email] = self.get_data(id, token)
+
+        return Response(self.get_filter_details(form, data, request.data), status=HTTP_200_OK)
 
 @api_view(["POST"])
 @permission_classes([IsAdminUser])

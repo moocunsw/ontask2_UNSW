@@ -224,29 +224,31 @@ class Field extends React.Component {
     const { field, onSave } = this.props;
     const { value } = this.state;
 
+    const fieldColumns = field.columns &&
+      field.columns.map(column => (
+        <div
+          className={value && value[`${field.name}__${column}`] ? "active" : "inactive"}
+          key={column}
+          onClick={() => {
+            const columnName = `${field.name}__${column}`;
+            const newValue = !value[columnName];
+
+            this.setState({
+              value: { ...value, [columnName]: newValue }
+            });
+            if (!onSave) return;
+            if (this.props.value[columnName] !== newValue) {
+              onSave(newValue, columnName);
+            }
+          }}
+        >
+          {column}
+        </div>
+      ));
+
     return (
       <div className="checkbox-group">
-        {field.columns.map(column => (
-          <div
-            className={value && value[column] ? "active" : "inactive"}
-            key={column}
-            onClick={() => {
-              const newValue = !value[column];
-
-              this.setState({
-                value: { ...value, [column]: newValue }
-              });
-
-              if (!onSave) return;
-
-              if (this.props.value[column] !== newValue) {
-                onSave(newValue, column);
-              }
-            }}
-          >
-            {column}
-          </div>
-        ))}
+        {fieldColumns}
       </div>
     );
   };
@@ -272,7 +274,9 @@ class Field extends React.Component {
                 return value ? moment(value).format("YYYY-MM-DD") : null;
 
               case "checkbox":
-                return value ? "True" : "False";
+                return value === null || value === undefined
+                  ? null
+                  : value ? "True" : "False";
 
               case "list":
                 if (!value) return null;
@@ -295,7 +299,7 @@ class Field extends React.Component {
                     {field.columns.map(column => (
                       <div
                         className={
-                          value && value[column] ? "active" : "inactive"
+                          value && value[`${field.name}__${column}`] ? "active" : "inactive"
                         }
                         key={column}
                       >

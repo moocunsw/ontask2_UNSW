@@ -17,7 +17,10 @@ const { Content, Sider } = Layout;
 const SubMenu = Menu.SubMenu;
 
 class DataLab extends React.Component {
-  state = { fetching: true, forms: [] };
+  state = {
+    fetching: true,
+    forms: [],
+  };
 
   componentDidMount() {
     const { match, location, history } = this.props;
@@ -48,14 +51,15 @@ class DataLab extends React.Component {
       apiRequest(`/datalab/${match.params.id}/access/`, {
         method: "GET",
         onSuccess: selected => {
-          const { datasources, dataLabs } = selected;
+          const { datasources, dataLabs, filter_details } = selected;
           delete selected.datasources;
           delete selected.dataLabs;
           this.setState({
             fetching: false,
             selected,
             datasources,
-            dataLabs
+            dataLabs,
+            filter_details
           });
         },
         onError: (error, status) => {
@@ -71,11 +75,11 @@ class DataLab extends React.Component {
       // Therefore redirect the user back to the container list
       history.replace("/dashboard");
     }
-  }
+  };
 
   updateDatalab = dataLab => {
     const { selected } = this.state;
-
+    this.fetchData(null, null, dataLab.id);
     this.setState({
       selected: { ...selected, ...dataLab }
     });
@@ -104,10 +108,38 @@ class DataLab extends React.Component {
     this.setState({ selected: { ...selected, forms } });
   };
 
+  fetchData = (payload, setTableState, datalabId) => {
+    const { match, history } = this.props;
+
+    setTableState && setTableState({filterOptions: payload, loading: true});
+    if (!datalabId && !match.params.id) return;
+
+    apiRequest(`/datalab/${datalabId || match.params.id}/filter/`, {
+      method: "POST",
+      payload: payload,
+      onSuccess: selected => {
+        const { filter_details } = selected;
+        this.setState({filter_details});
+        if (!!setTableState && !!payload) {
+          // Update Number of results
+          payload.pagination.total = filter_details.paginationTotal;
+          setTableState({filterOptions: payload, loading: false});
+        }
+      },
+      onError: (error, status) => {
+        setTableState && setTableState({filterOptions: payload, loading: false});
+        if (status === 403) {
+          history.replace("/forbidden");
+        } else {
+          history.replace("/error");
+        }
+      }
+    });
+  }
+
   render() {
     const { match, history, location } = this.props;
-    const { fetching, datasources, dataLabs, selected } = this.state;
-
+    const { fetching, datasources, dataLabs, selected, filter_details } = this.state;
     let menuKey = [location.pathname.split("/")[3]];
     if (menuKey[0] === "form") menuKey.push(location.pathname.split("/")[4]);
 
@@ -235,11 +267,13 @@ class DataLab extends React.Component {
                                 {...props}
                                 steps={selected.steps}
                                 data={selected.data}
+                                filter_details={filter_details}
                                 datasources={datasources}
                                 dataLabs={dataLabs}
                                 selectedId={selected.id}
                                 updateDatalab={this.updateDatalab}
                                 updateData={this.updateData}
+                                fetchData={this.fetchData}
                                 forms={selected.forms}
                                 columns={selected.columns}
                                 groupBy={selected.groupBy}
@@ -285,10 +319,12 @@ class DataLab extends React.Component {
                           restrictedView
                           selectedId={match.params.id}
                           data={selected.data}
+                          filter_details={filter_details}
                           columns={selected.columns}
                           groupBy={selected.groupBy}
                           defaultGroup={selected.default_group}
                           updateDatalab={this.updateDatalab}
+                          fetchData={this.fetchData}
                         />
                       )}
 

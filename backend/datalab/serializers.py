@@ -166,6 +166,7 @@ class DatalabSerializer(DocumentSerializer):
     actions = serializers.SerializerMethodField()
     columns = serializers.SerializerMethodField()
     data = serializers.ReadOnlyField()
+    filter_details = serializers.SerializerMethodField()
 
     def get_datasources(self, datalab):
         datasources = Datasource.objects(container=datalab["container"].id)
@@ -192,6 +193,9 @@ class DatalabSerializer(DocumentSerializer):
             datalab.order, many=True, context={"steps": datalab.steps}
         ).data
 
+    def get_filter_details(self, datalab):
+        return datalab.filter_details(filters=self.context.get("filters"))
+
     class Meta:
         model = Datalab
         fields = "__all__"
@@ -200,6 +204,7 @@ class DatalabSerializer(DocumentSerializer):
 class RestrictedDatalabSerializer(DocumentSerializer):
     columns = serializers.SerializerMethodField()
     data = serializers.SerializerMethodField()
+    filter_details = serializers.SerializerMethodField()
     default_group = serializers.SerializerMethodField()
 
     def get_columns(self, datalab):
@@ -212,9 +217,25 @@ class RestrictedDatalabSerializer(DocumentSerializer):
     def get_data(self, datalab):
         return self.context.get("data", datalab.data)
 
+    def get_filter_details(self, datalab):
+        return datalab.filter_details(filters=self.context.get("filters"))
+
     def get_default_group(self, datalab):
         return self.context.get("default_group")
 
     class Meta:
         model = Datalab
-        fields = ["name", "columns", "data", "groupBy", "default_group"]
+        fields = ["name", "columns", "data", "filter_details", "groupBy", "default_group"]
+
+class FilteredDatalabSerializer(DocumentSerializer):
+    """
+    Use-case - When the user changes table filters
+    """
+    filter_details = serializers.SerializerMethodField()
+
+    def get_filter_details(self, datalab):
+        return datalab.filter_details(filters=self.context.get("filters"))
+
+    class Meta:
+        model = Datalab
+        fields = ["filter_details"]

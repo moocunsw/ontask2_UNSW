@@ -21,6 +21,7 @@ from .serializers import (
     DatalabSerializer,
     OrderItemSerializer,
     RestrictedDatalabSerializer,
+    FilteredDatalabSerializer
 )
 from .permissions import DatalabPermissions
 from .models import Datalab
@@ -428,7 +429,8 @@ def AccessDataLab(request, id):
         raise NotFound()
 
     if datalab.container.has_full_permission(request.user):
-        serializer = DatalabSerializer(datalab)
+        # request.data is equivalent of no filters
+        serializer = DatalabSerializer(datalab, context={"filters": request.data})
         return Response(serializer.data)
 
     user_values = []
@@ -468,6 +470,17 @@ def AccessDataLab(request, id):
 
     return Response(serializer.data)
 
+
+@api_view(["POST"])
+def FilterData(request, id):
+    try:
+        datalab = Datalab.objects.get(id=id)
+    except:
+        raise NotFound()
+
+    serializer = FilteredDatalabSerializer(datalab, context={"filters": request.data})
+
+    return Response(serializer.data)
 
 @api_view(["POST"])
 def ExportToCSV(request, id):

@@ -16,6 +16,7 @@ import pandas as pd
 from container.models import Container
 from datasource.models import Datasource
 
+from form.utils import get_filters, get_column_filter, get_filtered_data
 
 class Column(EmbeddedDocument):
     stepIndex = IntField()
@@ -205,6 +206,47 @@ class Datalab(Document):
         combined_data.replace({pd.np.nan: None}, inplace=True)
 
         return combined_data.to_dict("records")
+
+    def filter_details(self, filters):
+        """
+        Function used in Serializers to get filter_details
+        Input
+        filters - Table Filter Details
+
+        Output
+        filter_details - Contains filtered data & other information
+            - dataNum: Number of rows in data
+            - paginationTotal: Number of rows in data (used for pagination)
+            - filters:
+                - Column Label with list of { text, value } for each column
+            - filteredData:
+                - The actual table data
+            - groups: List of {text value} for groupby dropdown (essentially another filter)
+        """
+        data = self.data
+
+        if filters is None: filters = {}
+        df = pd.DataFrame.from_dict(data)
+
+        # Grab Column Information to help with filtering because the filter algorithm depends on the column type
+        from datalab.serializers import OrderItemSerializer
+        columns = OrderItemSerializer(
+            self.order, many=True, context={"steps": self.steps}
+        ).data
+
+        group_column = next(column for column in columns if column['details']['label'] == self.groupBy) if self.groupBy is not None else None
+
+        # Perform Actual Filtering
+        filtered_data, pagination_total = get_filtered_data(data, columns, filters, self.groupBy)
+
+        return {
+            'dataNum': len(data),
+            'paginationTotal': pagination_total,
+            'filters': get_filters(df, columns),
+            'filteredData': filtered_data,
+            'groups': get_column_filter(df, group_column)
+        }
+
 
     # Flat representation of which users should see this DataLab when they load the dashboard
     def refresh_access(self):

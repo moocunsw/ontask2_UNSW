@@ -19,13 +19,18 @@ import queryString from 'query-string';
 
 import apiRequest from "../shared/apiRequest";
 import Field from "../shared/Field";
+import ContentTable from "../shared/ContentTable";
 
 import "./Form.css";
 
 const { Content } = Layout;
 
 class Form extends React.Component {
-  state = { fetching: true, singleRecordIndex: 0, saved: {} };
+  state = {
+    fetching: true,
+    singleRecordIndex: 0,
+    saved: {},
+  };
 
   componentWillMount() {
     // Parse Token in URL if any
@@ -54,10 +59,11 @@ class Form extends React.Component {
             ...form.fields.map(field => field.name)
           ])
         ];
-
+        const { filter_details } = form;
         this.setState({
           fetching: false,
           form,
+          filter_details,
           columnNames,
           tableColumns: this.generateColumns(form, columnNames),
           grouping: form.default_group,
@@ -79,43 +85,50 @@ class Form extends React.Component {
     });
   }
 
+  // ContentTable Function
+  isReadOnly = (record, column) => {
+    const { form } = this.state;
+    const field = form.fields.find(field => field.name === column);
+    return !(
+      form.is_active &&
+      form.editable_records.includes(_.get(record, form.primary)) &&
+      field
+    );
+  };
+
+  onFieldUpdate = (record, value, dataIndex, column, index, filterOptions) => {
+    const { form } = this.state;
+    const field = form.fields.find(field => field.name === dataIndex);
+
+    this.handleSubmit(
+      record[form.primary],
+      column ? column: field.name,
+      value,
+      index,
+      field.name,
+      filterOptions
+    )
+  };
+
   generateColumns = (form, columnNames) => {
     const { singleRecordIndex } = this.state;
 
+    if (!form || !columnNames) { return [] }
+
     if (form.layout === "table") {
-      return columnNames.map((column, columnIndex) => ({
+      return columnNames.map((column, columnIndex) => {
+        const field = form.fields.find(field => field.name === column);
+        return ({
         title: column,
         dataIndex: column,
-        key: columnIndex,
-        sorter: (a, b) => (a[column] || "").localeCompare(b[column] || ""),
-        render: (value, record, index) => {
-          const field = form.fields.find(field => field.name === column);
-          const editable =
-            form.is_active &&
-            form.editable_records.includes(_.get(record, form.primary)) &&
-            field;
-
-          if (field && field.type === "checkbox-group")
-            value = _.pick(record, field.columns);
-
-          return (
-            <Field
-              readOnly={!editable}
-              field={field}
-              value={value}
-              onSave={(value, column) =>
-                this.handleSubmit(
-                  record[form.primary],
-                  column ? column : field.name,
-                  value,
-                  index,
-                  field.name
-                )
-              }
-            />
-          );
-        }
-      }));
+        field: !!field ?
+          field
+          : {
+            type: 'text',
+            columns: [],
+            options: []
+          },
+      })});
     } else if (form.layout === "vertical") {
       return [
         {
@@ -137,7 +150,7 @@ class Form extends React.Component {
               field;
 
             if (field && field.type === "checkbox-group")
-              value = _.pick(record.item, field.columns);
+              value = _.pick(record.item, field.columns.map(column => `${field.name}__${column}`));
 
             return (
               <Field
@@ -162,7 +175,7 @@ class Form extends React.Component {
     }
   };
 
-  handleSubmit = (primary, field, value, index, loadingKey) => {
+  handleSubmit = (primary, field, value, index, loadingKey, filterOptions) => {
     const { match } = this.props;
     const { saved, form, token } = this.state;
 
@@ -179,11 +192,11 @@ class Form extends React.Component {
     apiRequest(url, {
       method: "PATCH",
       isAuthenticated: !token,
-      payload: { primary, field, value },
-      onSuccess: () => {
+      payload: { primary, field, value, filterOptions },
+      onSuccess: (filter_details) => {
         const savedRecord = _.get(saved, primary, {});
         savedRecord[loadingKey] = true;
-        this.setState({ saved: { ...saved, [primary]: savedRecord } }, () => {
+        this.setState({ filter_details, saved: { ...saved, [primary]: savedRecord } }, () => {
           this.updateSuccess = setTimeout(() => {
             savedRecord[loadingKey] = false;
             this.setState({ saved: { ...saved, [primary]: savedRecord } });
@@ -201,6 +214,35 @@ class Form extends React.Component {
       }
     });
   };
+
+  fetchData = (payload, setTableState) => {
+    setTableState && setTableState({filterOptions: payload, loading: true});
+    const { match, history } = this.props;
+    const { token } = this.state;
+
+    const url = (!!token ? `/form/${match.params.id}/access/${token}/` : `/form/${match.params.id}/access/`);
+
+    apiRequest(url, {
+      method: "POST",
+      isAuthenticated: !token,
+      payload: payload,
+      onSuccess: filter_details => {
+        this.setState({filter_details});
+        if (!!setTableState && !!payload) {
+          payload.pagination.total = filter_details.paginationTotal;
+          setTableState({filterOptions: payload, loading: false});
+        }
+      },
+      onError: (error, status) => {
+        setTableState && setTableState({filterOptions: payload, loading: false});
+        if (status === 403) {
+          history.replace("/forbidden");
+          return;
+        }
+        history.replace("/error");
+      }
+    });
+  }
 
   componentWillUnmount() {
     clearTimeout(this.updateSuccess);
@@ -251,7 +293,8 @@ class Form extends React.Component {
         apiRequest(`/form/${match.params.id}/access/`, {
           method: "GET",
           onSuccess: form => {
-            this.setState({ loading: false, upload: false, form });
+            const { filter_details } = form;
+            this.setState({ loading: false, upload: false, form, filter_details });
             notification["success"]({
               message: "Successfully imported form data"
             });
@@ -270,6 +313,7 @@ class Form extends React.Component {
     const {
       fetching,
       form,
+      filter_details,
       tableColumns,
       columnNames,
       singleRecordIndex,
@@ -280,10 +324,10 @@ class Form extends React.Component {
       upload
     } = this.state;
 
-    const groups =
-      form && form.groupBy
-        ? new Set(form.data.map(item => item[form.groupBy]))
-        : [];
+    const filterNum = filter_details && { total: filter_details.dataNum, filtered: filter_details.paginationTotal };
+    const filters = filter_details && filter_details.filters;
+    const groups = filter_details ? filter_details.groups: [];
+    const filteredData = filter_details ? filter_details.filteredData : [];
 
     return (
       <div className="form">
@@ -382,9 +426,9 @@ class Form extends React.Component {
                                   })
                                 }
                               >
-                                {[...groups].sort().map((group, i) => (
-                                  <Select.Option value={group} key={i}>
-                                    {group ? group : <i>No value</i>}
+                                {groups.map((group, i) => (
+                                  <Select.Option value={group.value} key={i}>
+                                    {group.text}
                                   </Select.Option>
                                 ))}
                               </Select>
@@ -472,41 +516,11 @@ class Form extends React.Component {
                       </div>
                     ) : (
                       <div>
-                        {form.groupBy && [
-                          <div style={{ marginBottom: 5 }} key="text">
-                            Group by:
-                          </div>,
-                          <Select
-                            style={{ width: "100%", maxWidth: 350 }}
-                            key="groups"
-                            allowClear
-                            showSearch
-                            value={grouping}
-                            onChange={grouping => this.setState({ grouping })}
-                          >
-                            {[...groups].sort().map((group, i) => (
-                              <Select.Option value={group} key={i}>
-                                {group ? group : <i>No value</i>}
-                              </Select.Option>
-                            ))}
-                          </Select>,
-                          <Divider key="divider" />
-                        ]}
-
-                        <Table
+                        <ContentTable
+                          showSearch
                           columns={tableColumns}
-                          dataSource={
-                            grouping !== undefined && grouping !== null
-                              ? form.data.filter(
-                                  item => _.get(item, form.groupBy) === grouping
-                                )
-                              : form.data
-                          }
+                          dataSource={filteredData}
                           scroll={{ x: (tableColumns.length - 1) * 175 }}
-                          pagination={{
-                            showSizeChanger: true,
-                            pageSizeOptions: ["10", "25", "50", "100"]
-                          }}
                           rowKey={(record, i) => i}
                           rowClassName={record => {
                             const primary = record[form.primary];
@@ -515,6 +529,13 @@ class Form extends React.Component {
                               ? "saved"
                               : "";
                           }}
+                          isReadOnly={this.isReadOnly}
+                          onFieldUpdate={this.onFieldUpdate}
+                          fetchData={this.fetchData}
+                          filters={filters}
+                          groups={groups}
+                          filterNum={filterNum}
+                          paginationTotal={filter_details && filter_details.paginationTotal}
                         />
                       </div>
                     )}

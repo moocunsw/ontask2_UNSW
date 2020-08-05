@@ -26,9 +26,10 @@ import FieldDesign from "./FieldDesign";
 import formItemLayout from "../../shared/FormItemLayout";
 import apiRequest from "../../shared/apiRequest";
 import Field from "../../shared/Field";
+import ContentTable from "../../shared/ContentTable";
 
 class DataLabForm extends React.Component {
-  state = { singleRecordIndex: 0 };
+  state = { singleRecordIndex: 0, preview: false, grouping: null};
 
   componentWillMount() {
     const { columns, formDetails } = this.props;
@@ -52,6 +53,7 @@ class DataLabForm extends React.Component {
       this.setState({
         fields,
         fieldKeys: fields.map(() => _.uniqueId()),
+        grouping: null,
         error: false
       });
       form.resetFields();
@@ -90,6 +92,9 @@ class DataLabForm extends React.Component {
   };
 
   exportField = () => {
+    /**
+     * Validate Fields, then download file as a .json
+     */
     const { form } = this.props;
 
     form.validateFields(["name", "fields"], (err, payload) => {
@@ -267,6 +272,11 @@ class DataLabForm extends React.Component {
       layout
     } = getFieldsValue();
 
+    const readOnlyFields = [
+      primary,
+      ...visibleFields
+    ];
+
     const columns = [
       primary,
       ...visibleFields,
@@ -275,22 +285,27 @@ class DataLabForm extends React.Component {
 
     const groups = groupBy ? new Set(data.map(item => item[groupBy])) : [];
 
+    // Filtering is performed here and not in the server since the data is temporary
+    let filteredData = [...data];
+
+    // Filter Based on Groupby
+    filteredData = grouping ? filteredData.filter(item => _.get(item, groupBy) === grouping) : data;
+
     if (layout === "table") {
-      const tableColumns = columns.map((column, columnIndex) => ({
-        title: column,
-        dataIndex: column,
-        key: columnIndex,
-        sorter: (a, b) => (a[column] || "").localeCompare(b[column] || ""),
-        render: (text, record) => {
-          const field = (fields || []).find(field => field.name === column);
-          let value = column in record ? text : null;
-
-          if (field && field.type === "checkbox-group")
-            value = _.pick(record, field.columns);
-
-          return <Field readOnly={!field} field={field} value={value} />;
-        }
-      }));
+      const tableColumns = columns.map((column, columnIndex) => {
+        const field = (fields || []).find(field => field.name === column);
+        return ({
+          title: column,
+          dataIndex: column,
+          field: !!field ?
+            field
+            : {
+              type: 'text',
+              columns: [],
+              options: []
+            },
+        });
+      });
 
       return (
         <div>
@@ -299,34 +314,42 @@ class DataLabForm extends React.Component {
               Group by:
             </div>,
             <Select
-              style={{ width: "100%", maxWidth: 350 }}
               key="groups"
+              style={{ width: "100%", maxWidth: 350, marginBottom: 10 }}
               allowClear
               showSearch
-              onChange={grouping => this.setState({ grouping })}
+              onChange={grouping =>
+                this.setState({
+                  grouping,
+                  singleRecordIndex: data.findIndex(
+                    item => _.get(item, groupBy) === grouping
+                  )
+                })
+              }
             >
               {[...groups].sort().map((group, i) => (
                 <Select.Option value={group} key={i}>
                   {group ? group : <i>No value</i>}
                 </Select.Option>
               ))}
-            </Select>,
-            <Divider key="divider" />
+            </Select>
           ]}
 
-          <Table
+          <ContentTable
+            isPreview             // Remove Filters
+            disableServerUpdate
+            fields={fields}
             columns={tableColumns}
-            dataSource={
-              grouping !== undefined || grouping !== null
-                ? data.filter(item => _.get(item, groupBy) === grouping)
-                : data
-            }
+            dataSource={filteredData}
             scroll={{ x: (columns.length - 1) * 175 }}
             pagination={{
               showSizeChanger: true,
               pageSizeOptions: ["10", "25", "50", "100"]
             }}
             rowKey={(record, i) => i}
+            isReadOnly={(record, column) => readOnlyFields.includes(column)}
+            onFieldUpdate={()=>{}} // Do not perform updates on change
+            fetchData={() => {}}   // Do not change data on filter
           />
         </div>
       );
@@ -345,8 +368,7 @@ class DataLabForm extends React.Component {
             );
 
             if (field && field.type === "checkbox-group")
-              value = _.pick(record.item, field.columns);
-
+              value = _.pick(record.item, field.columns.map(column => `${field.name}__${column}`));
             return (
               <Field
                 primaryKey={_.get(record.item, primary)} // Force re-render of the field component after changing the selected record
@@ -379,9 +401,9 @@ class DataLabForm extends React.Component {
                 })
               }
             >
-              {[...groups].sort().map((group, i) => (
-                <Select.Option value={group} key={i}>
-                  {group ? group : <i>No value</i>}
+              {groups.map((group, i) => (
+                <Select.Option value={group.value} key={i}>
+                  {group.text}
                 </Select.Option>
               ))}
             </Select>
@@ -985,6 +1007,7 @@ class DataLabForm extends React.Component {
             placement="right"
             onClose={() => this.setState({ preview: false })}
             visible={preview}
+            destroyOnClose
           >
             {this.preview()}
             <Alert
