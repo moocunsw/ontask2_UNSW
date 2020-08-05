@@ -28,6 +28,7 @@ const ContentTable = (props) => {
     dataSource,
     isPreview,
     filters,
+    paginationTotal,
     groups,
     fetchData,
     isReadOnly,
@@ -78,7 +79,8 @@ const ContentTable = (props) => {
           current: 1,
           pageSize: 10,
           showSizeChanger: true,
-          pageSizeOptions: ["10", "25", "50", "100"]
+          pageSizeOptions: ["10", "25", "50", "100"],
+          total: paginationTotal
         },
         sorter: {},
         filters: {},

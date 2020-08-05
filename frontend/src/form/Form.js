@@ -535,6 +535,7 @@ class Form extends React.Component {
                           filters={filters}
                           groups={groups}
                           filterNum={filterNum}
+                          paginationTotal={filter_details && filter_details.paginationTotal}
                         />
                       </div>
                     )}

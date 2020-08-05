@@ -435,6 +435,7 @@ class Data extends React.Component {
               columns={orderedColumns}
               dataSource={filteredData}
               filters={filters}
+              paginationTotal={filter_details && filter_details.paginationTotal}
               groups={groups}
               scroll={{ x: (orderedColumns.length - 1) * 175 }}
               fetchData={fetchData}
