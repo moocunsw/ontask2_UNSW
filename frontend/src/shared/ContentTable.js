@@ -193,12 +193,12 @@ const ContentTable = (props) => {
   return (
     <div>
       <div
-        style={{display: 'flex'}}
+        style={{display: 'flex', alignItems: 'center'}}
       >
         {
           (!groups || groups.length < 1) ? null :
           <Select
-            style={{ width: "100%", maxWidth: '225px', marginRight: '15px' }}
+            style={{ minWidth: '150px', maxWidth: '225px', marginRight: '15px' }}
             placeholder="Group by"
             allowClear
             showSearch
@@ -213,23 +213,22 @@ const ContentTable = (props) => {
           </Select>
         }
         { showSearch &&
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <Search
-              style={{ width: "auto", marginRight: '15px' }}
-              placeholder="Search..."
-              value={search}
-              onChange={e => {
-                const filterOptions = {...tableState.filterOptions, search: e.target.value};
-                setTableState({ filterOptions });
-              }}
-              onSearch={value => handleSearch(value)}
-            />
-          </div>
+          <Search
+            style={{ minWidth: '150px', maxWidth: '225px', marginRight: '15px' }}
+            placeholder="Search..."
+            value={search}
+            onChange={e => {
+              const filterOptions = {...tableState.filterOptions, search: e.target.value};
+              setTableState({ filterOptions });
+            }}
+            onSearch={value => handleSearch(value)}
+          />
         }
         { filterNum &&
           <div
             style={{
               display: 'flex',
+              minWidth: '100px',
               flexFlow: 'column',
               justifyContent: 'center'
             }}
