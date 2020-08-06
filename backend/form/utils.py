@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import math
 
 def get_filters(df, columns):
@@ -28,9 +29,14 @@ def get_column_filter(df, column):
         existing_fields = filter(lambda x: f'{column_name}__{x}' in df, sorted(column['details']['fields'])) # Applies to checkbox-group fields with no data entered
         return list(map(lambda x: {'text': x, 'value': x}, existing_fields))
     elif field_type == 'date':
-        return list(map(lambda x: {'text': x[:10], 'value': x}, sorted(df[column_name].replace('', np.nan).dropna().unique())))
+        unique_dates = pd.to_datetime(df[column_name].replace('', np.nan).dropna().unique())
+        return list(map(lambda x: {'text': x.strftime("%Y-%m-%d"), 'value': x}, sorted(unique_dates)))
+    elif field_type == 'number':
+        return list(map(lambda x: {'text': x, 'value': x}, sorted(df[column_name].replace('', np.nan).dropna().unique().astype(float))))
+    elif field_type == 'text':
+        return list(map(lambda x: {'text': x, 'value': x}, sorted(df[column_name].replace('', np.nan).dropna().unique().astype(str))))
     else:
-        # Text, Number, Non-fields
+        # Default
         return list(map(lambda x: {'text': x, 'value': x}, sorted(df[column_name].replace('', np.nan).dropna().unique().astype(str))))
 
 def get_filtered_data(data, columns, filters, groupby):
@@ -108,8 +114,22 @@ def remove_row_filter(row, filters, columns, mode='filter'):
                 if not any(item in row[column_name] for item in filter_list): return True
             elif field_type == 'checkbox':
                 if not any(row[column_name] == item for item in filter_list): return True
+            elif field_type == 'date':
+                # Convert row field and filters to %Y-%m-%d and check for equality
+                try:
+                    row_date = pd.to_datetime(row[column_name], errors='raise')
+                    if row_date is None: return True # Applies to 'None'
+                    row_date = row_date.strftime("%Y-%m-%d")
+                except ValueError as e: # Applies to cells which are not of date format
+                    return True
+                filter_dates = pd.to_datetime(pd.Series(filter_list)).apply(lambda x: x.strftime("%Y-%m-%d"))
+                if not any(row_date == item for item in filter_dates): return True
+            elif field_type == 'number':
+                if row[column_name] is None: return True
+                if row[column_name] == '': return True
+                if not any(float(row[column_name]) == float(item) for item in filter_list): return True
             else:
-                if not any(row[column_name] == item for item in filter_list): return True
+                if not any(str(row[column_name]) == str(item) for item in filter_list): return True
     return False
 
 def remove_row_search(row, filters, columns):
@@ -127,9 +147,26 @@ def sort_column_key(x, sort_field, column):
     if column['details']['field_type'] == 'checkbox-group':
         checkbox_fields = column['details']['fields']
         return len(list(filter(lambda field: f'{sort_field}__{field}' in x and x[f'{sort_field}__{field}'], checkbox_fields)))
+    elif column['details']['field_type'] == 'date':
+        # Date Form Field + Standard Date
+        if sort_field not in x: return ''
+        if x[sort_field] is None: return ''
+        try:
+            return pd.to_datetime(x[sort_field], errors='raise').strftime("%Y-%m-%d")
+        except ValueError as e: return ''
+    elif column['details']['field_type'] == 'number':
+        # Number Form Field + Standard Number
+        if sort_field not in x: return float('-inf')
+        if x[sort_field] is None: return float('-inf') # Missing Values
+        try:
+            return float(x[sort_field])
+        except ValueError as e:
+            # Usually '' values would fall here
+            return float('-inf')
     else:
-        if sort_field not in x: return ''      # Applies to forms with no data entered
-        elif x[sort_field] is None: return ''
+        # Text Form Field + Standard Text
+        if sort_field not in x: return ''
+        if x[sort_field] is None: return ''
         return str(x[sort_field])
 
 def paginate_data(data, pagination):
