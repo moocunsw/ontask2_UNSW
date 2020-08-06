@@ -29,10 +29,11 @@ def get_column_filter(df, column):
         existing_fields = filter(lambda x: f'{column_name}__{x}' in df, sorted(column['details']['fields'])) # Applies to checkbox-group fields with no data entered
         return list(map(lambda x: {'text': x, 'value': x}, existing_fields))
     elif field_type == 'date':
-        unique_dates = pd.to_datetime(df[column_name].replace('', np.nan).dropna().unique())
-        return list(map(lambda x: {'text': x.strftime("%Y-%m-%d"), 'value': x}, sorted(unique_dates)))
+        date_rows = pd.to_datetime(df[column_name].unique(), errors='coerce').dropna()
+        return list(map(lambda x: {'text': x.strftime("%Y-%m-%d"), 'value': x}, sorted(date_rows)))
     elif field_type == 'number':
-        return list(map(lambda x: {'text': x, 'value': x}, sorted(df[column_name].replace('', np.nan).dropna().unique().astype(float))))
+        numeric_rows =  pd.to_numeric(df[column_name], errors='coerce').dropna().unique()
+        return list(map(lambda x: {'text': x, 'value': x}, sorted(numeric_rows)))
     elif field_type == 'text':
         return list(map(lambda x: {'text': x, 'value': x}, sorted(df[column_name].replace('', np.nan).dropna().unique().astype(str))))
     else:
