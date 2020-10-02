@@ -12,7 +12,8 @@
    - Initialise the database by running `python3 manage.py makemigrations accounts`, `python3 manage.py makemigrations` and lastly `python3 manage.py migrate`
    - Load data into user groups by running `python3 manage.py loaddata user_groups`
    - Create the first admin user by running `python manage.py createsuperuser`
-   - Create a `Term` Table in the ontask Database (you can use a Database client like [MongoDB Compass](https://www.mongodb.com/products/compass)) and import `Term Codes.csv` (or create your own Terms). This is to ensure that you have Terms to search and create containers via the UI.
+   - Create a `term` Table in the ontask Database (you can use a Database client like [MongoDB Compass](https://www.mongodb.com/products/compass)) and import `Term Codes.csv` (or create your own Terms). This is to ensure that you have Terms to search and create containers via the UI.
+   `term` table should have fields: code (number), name (string), start (date), end (date)
 5. In order to work with LTI via localhost, the application runs in SSL mode with self-signed certs
    - This will require adding an exception in your browser for both https://localhost:3000 and https://localhost:8000
 

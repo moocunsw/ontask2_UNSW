@@ -493,100 +493,6 @@ class DatasourceModule extends React.Component {
             title={
               !datasource
                 ? "A datasource must be chosen first"
-                : "The field from this datasource which uniquely identifies each of the records"
-            }
-            placement="right"
-          >
-            {getFieldDecorator(`steps[${stepIndex}].datasource.primary`, {
-              rules: [{ required: true }],
-              initialValue: _.get(step, "datasource.primary")
-            })(
-              <Select
-                placeholder="Primary key"
-                disabled={!datasource}
-                onChange={e => {
-                  if (stepIndex) return; 
-
-                  const fieldsChosen = getFieldValue(
-                    `steps[${stepIndex}].datasource.fields`
-                  ) || [];
-
-                  if (!fieldsChosen.includes(e))
-                    setFieldsValue({
-                      [`steps[${stepIndex}].datasource.fields`]: [
-                        ...fieldsChosen,
-                        e
-                      ]
-                    });
-                }}
-              >
-                {datasource &&
-                  (
-                    datasource.fields ||
-                    datasource.columns.map(field => field.details.label)
-                  ).map(field => (
-                    <Option
-                      value={field}
-                      key={`${datasource.id}_${field}_primary`}
-                    >
-                      {field}
-                    </Option>
-                  ))}
-              </Select>
-            )}
-          </Tooltip>
-        </FormItem>
-
-        {stepIndex > 0 && (
-          <FormItem className="no-explain">
-            <Tooltip
-              title={
-                !datasource
-                  ? "A datasource must be chosen first"
-                  : !getFieldValue(`steps[${stepIndex}].datasource.primary`)
-                  ? "A primary key must be chosen first"
-                  : `In order to join the data from this datasource with the DataLab, 
-                      you must specify which field from the DataLab will be matched against 
-                      the primary key (specified above)`
-              }
-              placement="right"
-            >
-              {getFieldDecorator(`steps[${stepIndex}].datasource.matching`, {
-                rules: [{ required: true }],
-                initialValue: _.get(step, "datasource.matching")
-              })(
-                <Select
-                  placeholder="Matching field"
-                  onChange={matchingField =>
-                    this.checkForDiscrepencies({ matchingField })
-                  }
-                  disabled={
-                    !datasource ||
-                    !getFieldValue(`steps[${stepIndex}].datasource.primary`)
-                  }
-                >
-                  {matchingFields &&
-                    matchingFields.map(label => (
-                      <Option value={label} key={label}>
-                        {label}
-                      </Option>
-                    ))}
-                </Select>
-              )}
-            </Tooltip>
-          </FormItem>
-        )}
-
-        <div
-          id={`dropdown_${stepIndex}`}
-          ref={dropdown => (this.dropdown = dropdown)}
-        />
-
-        <FormItem className="no-explain">
-          <Tooltip
-            title={
-              !datasource
-                ? "A datasource must be chosen first"
                 : "The fields from this datasource that should be added to the DataLab"
             }
             placement="right"
@@ -710,6 +616,103 @@ class DatasourceModule extends React.Component {
             )}
           </Tooltip>
         </FormItem>
+
+        <FormItem className="no-explain">
+          <Tooltip
+            title={
+              !datasource
+                ? "A datasource must be chosen first"
+                : "The field from this datasource which uniquely identifies each of the records"
+            }
+            placement="right"
+          >
+            {getFieldDecorator(`steps[${stepIndex}].datasource.primary`, {
+              rules: [{ required: true }],
+              initialValue: _.get(step, "datasource.primary")
+            })(
+              <Select
+                placeholder="Primary key"
+                disabled={!datasource}
+                onChange={e => {
+                  if (stepIndex) return; 
+
+                  const fieldsChosen = getFieldValue(
+                    `steps[${stepIndex}].datasource.fields`
+                  ) || [];
+
+                  if (!fieldsChosen.includes(e))
+                    setFieldsValue({
+                      [`steps[${stepIndex}].datasource.fields`]: [
+                        ...fieldsChosen,
+                        e
+                      ]
+                    });
+                }}
+              >
+                {datasource &&
+                  (
+                    getFieldValue(`steps[${stepIndex}].datasource.fields`) ||
+                    _.get(step, "datasource.fields") ||
+                    []
+                  ).map(field => (
+                    <Option
+                      value={field}
+                      key={`${datasource.id}_${field}_primary`}
+                    >
+                      {field}
+                    </Option>
+                  ))}
+              </Select>
+            )}
+          </Tooltip>
+        </FormItem>
+
+        {stepIndex > 0 && (
+          <FormItem className="no-explain">
+            <Tooltip
+              title={
+                !datasource
+                  ? "A datasource must be chosen first"
+                  : !getFieldValue(`steps[${stepIndex}].datasource.primary`)
+                  ? "A primary key must be chosen first"
+                  : `In order to join the data from this datasource with the DataLab, 
+                      you must specify which field from the DataLab will be matched against 
+                      the primary key (specified above)`
+              }
+              placement="right"
+            >
+              {getFieldDecorator(`steps[${stepIndex}].datasource.matching`, {
+                rules: [{ required: true }],
+                initialValue: _.get(step, "datasource.matching")
+              })(
+                <Select
+                  placeholder="Matching field"
+                  onChange={matchingField =>
+                    this.checkForDiscrepencies({ matchingField })
+                  }
+                  disabled={
+                    !datasource ||
+                    !getFieldValue(`steps[${stepIndex}].datasource.primary`)
+                  }
+                >
+                  {matchingFields &&
+                    matchingFields.map(label => (
+                      <Option value={label} key={label}>
+                        {label}
+                      </Option>
+                    ))}
+                </Select>
+              )}
+            </Tooltip>
+          </FormItem>
+        )}
+
+        <div
+          id={`dropdown_${stepIndex}`}
+          ref={dropdown => (this.dropdown = dropdown)}
+        />
+
+        
 
         {datasource && (
           <DiscrepenciesModal

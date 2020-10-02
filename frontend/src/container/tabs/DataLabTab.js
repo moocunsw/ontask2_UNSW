@@ -141,6 +141,19 @@ class DataLabTab extends React.Component {
     });
   };
 
+  /* 
+    To check if another datalab is dependent on this one before deleting.
+  */
+  checkDependencies = dataLabId => {
+    const { dataLabs } = this.props
+    for (let dataLab of dataLabs) {
+      for (let step of dataLab.steps) {
+        if (step.datasource.id == dataLabId) return true
+      }
+    }
+    return false
+  }
+
   render() {
     const { containerId, dataLabs, datasources } = this.props;
     const { deleting, cloning, drawer } = this.state;
@@ -167,20 +180,21 @@ class DataLabTab extends React.Component {
               const dataLab = dataLabs.find(
                 dataLab => dataLab.id === step.datasource.id
               );
-
-              return (
-                <Tag
-                  color="blue"
-                  key={stepIndex}
-                  style={{ margin: 3 }}
-                  onClick={() =>
-                    this.previewDatasource(step.datasource.id, !!datasource)
-                  }
-                >
-                  <Icon type="database" style={{ marginRight: 5 }} />
-                  {(datasource || dataLab).name}
-                </Tag>
-              );
+              // if (dataLab != undefined) {
+                return (
+                  <Tag
+                    color="blue"
+                    key={stepIndex}
+                    style={{ margin: 3 }}
+                    onClick={() =>
+                      this.previewDatasource(step.datasource.id, !!datasource)
+                    }
+                  >
+                    <Icon type="database" style={{ marginRight: 5 }} />
+                    {datasource ? datasource.name : dataLab.name}
+                  </Tag>
+                );
+              // }
             } else if (step.type === "form") {
               return (
                 <Tag
@@ -245,7 +259,17 @@ class DataLabTab extends React.Component {
                 type="danger"
                 icon="delete"
                 loading={dataLab.id in deleting && deleting[dataLab.id]}
-                onClick={() => this.deleteDataLab(dataLab.id)}
+                onClick={() => {
+                  // check if this datalab.id is a part of any of the other sources
+                  if (!this.checkDependencies(dataLab.id)) this.deleteDataLab(dataLab.id)
+                  else {
+                    notification["error"]({
+                      message: "DataLab deletion failed",
+                      description: `Other datalabs are dependent on "${dataLab.name}". Delete the others first.`
+                    });
+                  }
+                  // this.deleteDataLab(dataLab.id)
+                }}
               />
             </Tooltip>
           </div>
