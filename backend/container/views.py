@@ -73,7 +73,6 @@ def Terms(request):
     # All Terms
     terms = Term.objects.all().order_by("-code")
     allTerms = [TermSerializer(term).data for term in terms]
-
     # Current Terms
     terms = Term.objects.filter(
         Q(start__lte=dt.utcnow()) & Q(end__gte=dt.utcnow())
