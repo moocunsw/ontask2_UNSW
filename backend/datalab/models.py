@@ -189,7 +189,7 @@ class Datalab(Document):
 
             elif step.type == "computed":
                 step = step.computed
-
+                
                 build_fields.append([field.name for field in step.fields])
 
                 computed_fields = {
@@ -224,7 +224,6 @@ class Datalab(Document):
             - groups: List of {text value} for groupby dropdown (essentially another filter)
         """
         data = self.data
-
         if filters is None: filters = {}
         df = pd.DataFrame.from_dict(data)
 

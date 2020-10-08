@@ -148,7 +148,9 @@ class DataLabTab extends React.Component {
     const { dataLabs } = this.props
     for (let dataLab of dataLabs) {
       for (let step of dataLab.steps) {
-        if (step.datasource.id == dataLabId) return true
+        if (step.datasource) {
+          if (step.datasource.id == dataLabId) return true
+        }
       }
     }
     return false
