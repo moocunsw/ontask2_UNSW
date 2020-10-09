@@ -206,7 +206,7 @@ class ComputedFieldModal extends React.Component {
     );
 
     if (
-      !["aggregation", "field", "close-bracket"].includes(lastBlock) ||
+      !["aggregation", "field", "close-bracket", "constant"].includes(lastBlock) ||
       hasUnclosedParenthesis ||
       hasEmptyAggregation
     ) {

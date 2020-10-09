@@ -165,8 +165,9 @@ def calculate_computed_field(formula, record, build_fields, tracking_feedback_da
             field = node["data"]["name"]
             populated_formula.append(cast_float(record[field]))
 
-        # if node_type == "constant":
-            # populated_formula.append("1")
+        if node_type == "constant":
+            value = node["data"]["value"]
+            populated_formula.append(cast_float(value))
 
         if node_type == "aggregation":
             aggregation_type = node["data"]["type"]
@@ -208,9 +209,10 @@ def calculate_computed_field(formula, record, build_fields, tracking_feedback_da
                     [str(x) if x is not None else "" for x in aggregation_value]
                 )
 
-            populated_formula.append(aggregation_value)
-
+            populated_formula.append(cast_float(aggregation_value))
+            
     populated_formula = "".join([str(x) for x in populated_formula])
+
 
     try:
         return ne.evaluate(populated_formula).item()
