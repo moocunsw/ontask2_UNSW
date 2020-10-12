@@ -90,7 +90,7 @@ def calculate_computed_field(formula, record, build_fields, tracking_feedback_da
             else 0
         )
 
-    def iterate_aggregation(columns, is_numerical=True):
+    def iterate_aggregation(columns, is_numerical=True, is_checkbox_group=False):
         values = []
 
         for column in columns:
@@ -127,6 +127,15 @@ def calculate_computed_field(formula, record, build_fields, tracking_feedback_da
             else:
                 if len(split_column) == 1:
                     step_index = int(split_column[0])
+                    if is_checkbox_group is True:
+                        prefix = build_fields[step_index][0]
+                        # get all fields with this title in its name
+                        # for field in record:
+                            # print(record[field])
+                        for field in list(record.keys()):
+                            if prefix in field and record[field] is True:
+                                values.append(1)
+
                     for field in build_fields[step_index]:
                         value = record[field] if field in record else None
                         values.append(cast_float(value) if is_numerical else value)
@@ -156,10 +165,17 @@ def calculate_computed_field(formula, record, build_fields, tracking_feedback_da
             field = node["data"]["name"]
             populated_formula.append(cast_float(record[field]))
 
+        if node_type == "constant":
+            value = node["data"]["value"]
+            populated_formula.append(cast_float(value))
+
         if node_type == "aggregation":
             aggregation_type = node["data"]["type"]
             columns = node["data"]["columns"]
             aggregation_value = 0
+
+            if aggregation_type == "sum_checkbox_group":
+                aggregation_value = sum(iterate_aggregation(columns, is_checkbox_group=True))
 
             if aggregation_type == "sum":
                 aggregation_value = sum(iterate_aggregation(columns))
@@ -193,9 +209,10 @@ def calculate_computed_field(formula, record, build_fields, tracking_feedback_da
                     [str(x) if x is not None else "" for x in aggregation_value]
                 )
 
-            populated_formula.append(aggregation_value)
-
+            populated_formula.append(cast_float(aggregation_value))
+            
     populated_formula = "".join([str(x) for x in populated_formula])
+
 
     try:
         return ne.evaluate(populated_formula).item()

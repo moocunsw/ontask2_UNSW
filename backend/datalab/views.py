@@ -522,8 +522,24 @@ def ExportToCSV(request, id):
     reordered_columns = []
     boolean_columns = []
     list_columns = []
+    modify_columns = {} # columns which need to be modified after adding to the boolean columns.
+
     for item in order.data:
         if item["details"]["field_type"] == "checkbox-group":
+            # so we have data with {field}__{fields[x]} as the current data column.
+            # for this specific field which is term_attendance, we want to extract the columns.
+            checkboxColumns = []
+            renamedColumns = []
+            columns = list(data.columns)
+            for col in columns:
+                if item["details"]["label"] in col:
+                    checkboxColumns.append(col)
+                    renamedColumns.append(col.replace(item["details"]["label"]+"__", ""))
+            
+            # select these columns and their data
+            for i in range(0, len(checkboxColumns)):
+                modify_columns[renamedColumns[i]] = data[checkboxColumns[i]].to_list()
+
             reordered_columns.extend(item["details"]["fields"])
             boolean_columns.extend(item["details"]["fields"])
         else:
@@ -533,7 +549,15 @@ def ExportToCSV(request, id):
                 list_columns.append(item["details"]["label"])
             reordered_columns.append(item["details"]["label"])
 
+
     data = data.reindex(columns=reordered_columns)
+
+    # now using modify columns, we should replace the required columns
+    for key in modify_columns:
+        data[key] = modify_columns[key]
+    # now we should have the boolean columns. We should then get the data from form.
+
+     
     data[boolean_columns] = data[boolean_columns].fillna(False)
     data[list_columns] = data[list_columns].applymap(
         lambda x: ",".join(x) if isinstance(x, list) else x

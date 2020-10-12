@@ -248,8 +248,9 @@ class Data extends React.Component {
         // return a.toString().localeCompare(b.toString());
         // },
         render: (text, record, index) => {
-          if (field && field.type === "checkbox-group")
+          if (field && field.type === "checkbox-group") {
             text = _.pick(record, field.columns.map(column => `${field.name}__${column}`));
+          }
 
           return (
             <div className="editable-field">
@@ -380,6 +381,8 @@ class Data extends React.Component {
     // columns would ideally only be initialised when receiving the build
     // for the first time
     const orderedColumns = this.initialiseColumns();
+
+    // console.log(filteredData)
 
     return (
       <div className="data" style={{ marginTop: 25 }}>

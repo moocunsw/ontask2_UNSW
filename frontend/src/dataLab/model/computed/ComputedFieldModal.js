@@ -46,7 +46,9 @@ class ComputedFieldModal extends React.Component {
   state = {
     value: initialValue,
     error: null,
-    treeData: null
+    treeData: null,
+    addConstant: false,
+    constantValue: '',
   };
 
   generateTreeData = () => {
@@ -84,7 +86,6 @@ class ComputedFieldModal extends React.Component {
 
         if (step.type === "form") {
           step = (forms || []).find(form => form.id === step.form);
-
           treeData.push({
             title: (
               <span style={{ color: "#5E35B1" }}>
@@ -93,11 +94,33 @@ class ComputedFieldModal extends React.Component {
               </span>
             ),
             value: `${i}`,
-            children: (step.fields || []).map((field, j) => ({
-              title: field.name,
-              value: `${i}_${j}`
-            }))
+            children: (step.fields || []).map((field, j) => {
+              return ({
+                title: field.name,
+                value: `${i}_${j}`
+              })
+            })
           });
+        }
+
+        if (step.type === "computed") {
+          const field = step.computed.fields[0]
+          console.log(field)
+          treeData.push({
+            title: (
+              <span style={{color: "#52c41a"}}>
+                <Icon type="calculator" style={{ marginRight: 5 }} />
+                {field.name}
+              </span>
+            ),
+            value: `${i}`,
+            children: [{
+              title: field.name,
+              value: `${i}_0`
+            }]
+          })
+          // console.log("computed")
+          
         }
       });
 
@@ -204,7 +227,7 @@ class ComputedFieldModal extends React.Component {
     );
 
     if (
-      !["aggregation", "field", "close-bracket"].includes(lastBlock) ||
+      !["aggregation", "field", "close-bracket", "constant"].includes(lastBlock) ||
       hasUnclosedParenthesis ||
       hasEmptyAggregation
     ) {
@@ -254,7 +277,7 @@ class ComputedFieldModal extends React.Component {
   renderBlock = props => {
     const { attributes, node } = props;
     const { treeData } = this.state;
-
+    console.log(node.type)
     switch (node.type) {
       case "paragraph":
         return (
@@ -416,6 +439,20 @@ class ComputedFieldModal extends React.Component {
           </div>
         );
       }
+      case "constant": {
+        const value = node.data.get("value")
+        return (
+          <div
+            style={{
+              display: "inline-block",
+              marginRight: 5,
+              marginTop: -5
+            }}
+          >
+            { value } 
+          </div>
+        )
+      }
       default:
         return;
     }
@@ -475,7 +512,7 @@ class ComputedFieldModal extends React.Component {
               });
             }}
             disabled={
-              !["aggregation", "field"].includes(lastBlock) ||
+              !["aggregation", "field", "constant"].includes(lastBlock) ||
               !hasUnclosedParenthesis
             }
           >
@@ -509,6 +546,7 @@ class ComputedFieldModal extends React.Component {
           Concat
         </Menu.Item>
         <Menu.Item key="last">Last</Menu.Item>
+        <Menu.Item key="sum_checkbox_group">Sum Checkbox Group</Menu.Item>
       </Menu>
     );
 
@@ -528,6 +566,52 @@ class ComputedFieldModal extends React.Component {
       </Dropdown>
     );
   };
+
+  changeConstantValue = (e) => {
+    this.setState({ constantValue: e.target.value})
+  }
+
+  Constants = () => {
+
+    const { value, constantValue, addConstant } = this.state
+
+    const handleAddClick = (value) => {
+      this.editor.insertBlock({
+        type: 'constant',
+        data: { value: value }
+      })
+      return true
+    }
+
+    const input = (
+      <Button
+        onClick={() => {
+          this.setState({ addConstant: !this.state.addConstant})
+        }}
+        style={{marginTop: 5, marginRight: 5}}
+      >Add Constant { addConstant ? <Icon type="up" /> : <Icon type="down" /> }</Button>
+    )
+
+    const lastBlock = value.endBlock.type;
+
+    return (
+      <div>
+        {input}
+        {this.state.addConstant ? (
+          <div style={{marginBottom: 5}}>
+            <Input style={{width: "50%", marginTop: 5, marginRight: 5}} onChange={this.changeConstantValue} value={this.state.constantValue} />
+            <Button
+              disabled={!["paragraph", "open-bracket", "operator"].includes(lastBlock)}
+              onClick={() => {
+                handleAddClick(constantValue)
+              }}
+              type="primary"
+            >Add</Button>
+          </div>)
+        : null}
+      </div>
+    )
+  }
 
   Columns = () => {
     const { value, treeData } = this.state;
@@ -601,7 +685,7 @@ class ComputedFieldModal extends React.Component {
         overlay={menu}
         trigger={["click"]}
         disabled={
-          !["aggregation", "field", "close-bracket"].includes(lastBlock.type) ||
+          !["aggregation", "field", "close-bracket", "constant"].includes(lastBlock.type) ||
           (lastBlock.type === "aggregation" &&
             ["concat", "list"].includes(lastBlock.data.get("type")))
         }
@@ -691,6 +775,7 @@ class ComputedFieldModal extends React.Component {
           {this.AggregationFunctions()}
           {this.Columns()}
           {this.Operators()}
+          {this.Constants()}
           {this.DeleteBlock()}
         </div>
 
