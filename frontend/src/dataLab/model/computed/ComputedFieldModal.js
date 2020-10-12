@@ -86,7 +86,6 @@ class ComputedFieldModal extends React.Component {
 
         if (step.type === "form") {
           step = (forms || []).find(form => form.id === step.form);
-
           treeData.push({
             title: (
               <span style={{ color: "#5E35B1" }}>
@@ -95,11 +94,33 @@ class ComputedFieldModal extends React.Component {
               </span>
             ),
             value: `${i}`,
-            children: (step.fields || []).map((field, j) => ({
-              title: field.name,
-              value: `${i}_${j}`
-            }))
+            children: (step.fields || []).map((field, j) => {
+              return ({
+                title: field.name,
+                value: `${i}_${j}`
+              })
+            })
           });
+        }
+
+        if (step.type === "computed") {
+          const field = step.computed.fields[0]
+          console.log(field)
+          treeData.push({
+            title: (
+              <span style={{color: "#52c41a"}}>
+                <Icon type="calculator" style={{ marginRight: 5 }} />
+                {field.name}
+              </span>
+            ),
+            value: `${i}`,
+            children: [{
+              title: field.name,
+              value: `${i}_0`
+            }]
+          })
+          // console.log("computed")
+          
         }
       });
 
