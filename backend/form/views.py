@@ -405,9 +405,38 @@ def ExportStructure(request, id):
         else:
             fields.append(field.name)
 
-    pd.DataFrame(data=form.data).reindex(columns=fields).to_csv(
-        path_or_buf=response, index=False
+    df = pd.DataFrame(data=form.data)
+
+    datalab_data = (
+        pd.DataFrame(data=form.datalab.data)
+        .set_index(form.primary)
+        .filter(items=[form.primary, *form.visibleFields])
     )
+
+    form_data = pd.DataFrame(data=form.data)
+    # Only include fields that are in the form design
+    # (Some fields may have data, but were removed)
+    form_fields = [form.primary]
+    for field in form.fields:
+        if field.type == "checkbox-group":
+            form_fields.extend([f"{field.name}__{column}" for column in field.columns])
+        else:
+            form_fields.append(field.name)
+
+    form_data = form_data.reindex(columns=form_fields)
+
+    if form.primary in form_data:
+        form_data.set_index(form.primary, inplace=True)
+
+    data = datalab_data.join(form_data).reset_index()
+
+    data.replace({pd.np.nan: False}, inplace=True)
+
+    data.to_csv(path_or_buf=response, index=False)
+
+    # pd.DataFrame(data=form.data).reindex(columns=fields).to_csv(
+    #     path_or_buf=response, index=False
+    # )
 
     logger.info("form.export", extra={"id": id, "user": request.user.email})
 
