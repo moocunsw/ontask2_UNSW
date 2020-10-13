@@ -163,7 +163,8 @@ def calculate_computed_field(formula, record, build_fields, tracking_feedback_da
 
         if node_type == "field":
             field = node["data"]["name"]
-            populated_formula.append(cast_float(record[field]))
+            if field in record:
+                populated_formula.append(cast_float(record[field]))
 
         if node_type == "constant":
             value = node["data"]["value"]
