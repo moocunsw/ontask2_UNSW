@@ -36,8 +36,12 @@ class Model extends React.Component {
       // or a module's values must be reset (e.g. change the chosen datasource
       // in a datasource module) then the step/module in the build must also be
       // cleared, as it is used for populating the initial values of the fields.
-      steps: props.steps
+      steps: props.steps,
     };
+  }
+
+  setChanged = () => {
+    this.props.onSettingsChange()
   }
 
   labelsUsed = memoize(stepIndex => {
@@ -145,7 +149,7 @@ class Model extends React.Component {
             history.push({ pathname: `/datalab/${dataLab.id}/data` });
         },
         onError: error => {
-          notification["error"]({ message: error.detail });
+          notification["error"]({ message: error })
           this.setState({ loading: false });
         }
       });
@@ -166,7 +170,8 @@ class Model extends React.Component {
     getFieldDecorator(`steps[${stepKeys.length}].type`, {
       initialValue: type
     });
-    this.setState({ stepKeys: [...stepKeys, _.uniqueId()], error: null });
+    this.setState({ stepKeys: [...stepKeys, _.uniqueId()], error: null, changed: true });
+    this.setChanged()
   };
 
   deleteModule = () => {
@@ -181,8 +186,9 @@ class Model extends React.Component {
       // This ensures that if a module is added, then the values will not
       // be mistakenly pre-populated (given that the form fields set
       // initialValue against the "step" provided in the props of the module)
-      steps: steps && steps.slice(0, -1)
+      steps: steps && steps.slice(0, -1),
     });
+    this.setChanged()
 
     setFieldsValue({ steps: getFieldValue("steps").slice(0, -1) });
   };
@@ -197,6 +203,7 @@ class Model extends React.Component {
     // Allow modules to update
     steps[stepIndex] = updatedStep;
     this.setState({ steps });
+    this.setChanged()
   };
 
   render() {
@@ -310,6 +317,7 @@ class Model extends React.Component {
 
                     {type === "computed" && (
                       <ComputedModule
+                        setChanged={() => this.setChanged()}
                         stepIndex={index}
                         step={steps && steps[index]}
                       />
@@ -353,7 +361,7 @@ class Model extends React.Component {
               {getFieldDecorator("name", {
                 initialValue: name,
                 rules: [{ required: true, message: "Name is required" }]
-              })(<Input />)}
+              })(<Input onChange={() => this.setChanged()}/>)}
             </Form.Item>
 
             <Form.Item
@@ -372,7 +380,7 @@ class Model extends React.Component {
             >
               {getFieldDecorator("description", {
                 initialValue: description
-              })(<Input.TextArea />)}
+              })(<Input.TextArea onChange={() => this.setChanged()}/>)}
             </Form.Item>
 
             <Form.Item
@@ -392,7 +400,7 @@ class Model extends React.Component {
               {getFieldDecorator("groupBy", {
                 initialValue: groupBy
               })(
-                <Select allowClear>
+                <Select allowClear onChange={() => this.setChanged()}>
                   {this.labelsUsed().map(label => (
                     <Select.Option value={label} key={label}>
                       {label}
@@ -406,14 +414,14 @@ class Model extends React.Component {
               {getFieldDecorator("emailAccess", {
                 initialValue: emailAccess || false,
                 valuePropName: "checked"
-              })(<Checkbox />)}
+              })(<Checkbox onChange={() => this.setChanged()}/>)}
             </Form.Item>
 
             <Form.Item {...formItemLayout} label="Allow access via LTI">
               {getFieldDecorator("ltiAccess", {
                 initialValue: ltiAccess || false,
                 valuePropName: "checked"
-              })(<Checkbox />)}
+              })(<Checkbox onChange={() => this.setChanged()}/>)}
             </Form.Item>
 
             {(getFieldValue("emailAccess") || getFieldValue("ltiAccess")) && (

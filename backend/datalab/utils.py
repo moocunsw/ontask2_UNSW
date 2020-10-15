@@ -32,7 +32,10 @@ def bind_column_types(steps):
                             pass
 
                     if datasource:
-                        types[field] = datasource["types"][field]
+                        if field in datasource["types"]:
+                            types[field] = datasource["types"][field]
+                        else: 
+                            print("Field: ", field, " does not exist")
 
                     if not datalab:
                         try:

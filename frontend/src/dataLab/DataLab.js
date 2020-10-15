@@ -1,5 +1,5 @@
 import React from "react";
-import { Switch, Route, Link, Redirect } from "react-router-dom";
+import { Switch, Route, Link, Redirect, Prompt } from "react-router-dom";
 import { Spin, Layout, Icon, Menu } from "antd";
 import { DragDropContext } from "react-dnd";
 import HTML5Backend from "react-dnd-html5-backend";
@@ -20,7 +20,12 @@ class DataLab extends React.Component {
   state = {
     fetching: true,
     forms: [],
+    changed: false
   };
+
+  onSettingsChange = () => {
+    this.setState({ changed: true })
+  }
 
   componentDidMount() {
     const { match, location, history } = this.props;
@@ -256,6 +261,8 @@ class DataLab extends React.Component {
                                 dataLabs={dataLabs}
                                 selectedId={selected.id}
                                 updateDatalab={this.updateDatalab}
+                                changed={this.state.changed}
+                                onSettingsChange={() => this.onSettingsChange()}
                               />
                             )}
                           />
@@ -330,13 +337,18 @@ class DataLab extends React.Component {
                       )}
 
                       {!selected && (
-                        <Model
-                          history={history}
-                          location={location}
-                          datasources={datasources}
-                          dataLabs={dataLabs}
-                          updateDatalab={this.updateDatalab}
-                        />
+                        <div>
+                          <Model
+                            history={history}
+                            location={location}
+                            datasources={datasources}
+                            dataLabs={dataLabs}
+                            updateDatalab={this.updateDatalab}
+                            changed={this.state.changed}
+                            onSettingsChange={() => this.onSettingsChange()}
+                          />
+                          
+                        </div>
                       )}
                     </div>
                   </Content>
@@ -345,6 +357,9 @@ class DataLab extends React.Component {
             </Content>
           </Layout>
         </Content>
+        <Prompt when={this.state.changed} 
+          message={location => `Are you sure you want to go to ${location.pathname}? You have unsaved changes`}
+        />
       </div>
     );
   }

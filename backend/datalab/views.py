@@ -50,7 +50,6 @@ class DatalabViewSet(viewsets.ModelViewSet):
 
         # Retrieve only the DataLabs that belong to these containers
         datalabs = Datalab.objects(container__in=containers)
-
         return datalabs
 
     def perform_create(self, serializer):
@@ -283,6 +282,7 @@ class DatalabViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=["patch"])
     def change_column_visibility(self, request, id=None):
+        print("this\n\n\n\n")
         datalab = self.get_object()
         self.check_object_permissions(self.request, datalab)
 

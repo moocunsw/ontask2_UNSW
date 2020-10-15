@@ -40,10 +40,10 @@ class ComputedModule extends React.Component {
     const { stepIndex } = this.props;
     const { form } = this.context;
     const { setFieldsValue } = form;
-
     setFieldsValue({
       [`steps[${stepIndex}].computed.fields[${fieldIndex}]`]: field
     });
+    this.props.setChanged()
   };
 
   deleteField = fieldIndex => {
@@ -60,6 +60,7 @@ class ComputedModule extends React.Component {
 
     this.setState({ fieldKeys, fields });
     setFieldsValue({ [`steps[${stepIndex}].computed.fields`]: formFields });
+    this.props.setChanged()
   };
 
   render() {
