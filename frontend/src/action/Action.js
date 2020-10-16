@@ -9,6 +9,7 @@ import Compose from "./interfaces/Compose";
 import Email from "./interfaces/Email";
 import Feedback from "./interfaces/Feedback";
 import Settings from "./interfaces/ActionSettings";
+import EmailHistory from './interfaces/EmailHistory'
 // import StaticPage from "./interfaces/StaticPage";
 
 import apiRequest from "../shared/apiRequest";
@@ -110,6 +111,13 @@ class Action extends React.Component {
                         </Link>
                       </Menu.Item>
 
+                      <Menu.Item key="email_history">
+                        <Link to={`${match.url}/email_history`}>
+                          <Icon type="history"/>
+                          <span>Email History</span>
+                        </Link>
+                      </Menu.Item>
+
                       <Menu.Item key="static" disabled>
                         <Link to={`${match.url}/static`}>
                           <Icon type="link" />
@@ -165,6 +173,16 @@ class Action extends React.Component {
                               path={`${match.url}/email`}
                               render={props => (
                                 <Email
+                                  {...props}
+                                  action={action}
+                                  updateAction={this.updateAction}
+                                />
+                              )}
+                            />
+                            <Route
+                              path={`${match.url}/email_history`}
+                              render={props => (
+                                <EmailHistory
                                   {...props}
                                   action={action}
                                   updateAction={this.updateAction}
