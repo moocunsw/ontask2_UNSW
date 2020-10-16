@@ -27,6 +27,12 @@ class DataLab extends React.Component {
     this.setState({ changed: true })
   }
 
+  componentDidUpdate(prevProps) {
+    if (this.props.location !== prevProps.location) {
+      this.setState({ changed: false })
+    }
+  }
+
   componentDidMount() {
     const { match, location, history } = this.props;
 
@@ -312,6 +318,7 @@ class DataLab extends React.Component {
                                       isDelete
                                     })
                                   }
+                                  onSettingsChange={() => this.onSettingsChange()}
                                   updateDatalab={this.updateDatalab}
                                   data={selected.data}
                                   forms={selected.forms}
@@ -358,7 +365,13 @@ class DataLab extends React.Component {
           </Layout>
         </Content>
         <Prompt when={this.state.changed} 
-          message={location => `Are you sure you want to go to ${location.pathname}? You have unsaved changes`}
+          message={(location, action) => {
+            if (this.state.changed) return "You have unsaved changed. Are you sure you want to navigate away from this page?"
+            else {
+              this.setState({ changed: false })
+              return true
+            }
+          }}
         />
       </div>
     );

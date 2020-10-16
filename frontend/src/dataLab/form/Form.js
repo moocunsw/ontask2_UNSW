@@ -68,10 +68,11 @@ class DataLabForm extends React.Component {
       fieldKeys: [...fieldKeys, _.uniqueId()],
       error: false
     });
+    this.props.onSettingsChange()
   };
 
   deleteField = fieldIndex => {
-    const { form } = this.props;
+    const { form, onSettingsChange } = this.props;
     const { fieldKeys } = this.state;
     const { getFieldValue, setFieldsValue } = form;
 
@@ -89,6 +90,7 @@ class DataLabForm extends React.Component {
         setFieldsValue({ fields });
       }
     });
+    this.props.onSettingsChange()
   };
 
   exportField = () => {
@@ -173,6 +175,7 @@ class DataLabForm extends React.Component {
       return primary;
     }
 
+    this.props.onSettingsChange()
     return currentPrimary;
   };
 
@@ -516,7 +519,7 @@ class DataLabForm extends React.Component {
           {getFieldDecorator("name", {
             initialValue: _.get(formDetails, "name"),
             rules: [{ required: true, message: "Name is required" }]
-          })(<Input />)}
+          })(<Input onChange={() => this.props.onSettingsChange()}/>)}
         </Form.Item>
 
         <Form.Item
@@ -535,7 +538,7 @@ class DataLabForm extends React.Component {
         >
           {getFieldDecorator("description", {
             initialValue: _.get(formDetails, "description")
-          })(<Input.TextArea />)}
+          })(<Input.TextArea onChange={() => this.props.onSettingsChange()}/>)}
         </Form.Item>
 
         <Form.Item
@@ -568,6 +571,7 @@ class DataLabForm extends React.Component {
                   )
                 )
                   form.resetFields(["groupBy"]);
+                this.props.onSettingsChange()
               }}
             >
               {labels.map(label => (
@@ -611,6 +615,7 @@ class DataLabForm extends React.Component {
                   )
                 )
                   form.resetFields(["groupBy"]);
+                this.props.onSettingsChange()
               }}
             >
               {labels
@@ -653,7 +658,7 @@ class DataLabForm extends React.Component {
           {getFieldDecorator("groupBy", {
             initialValue: _.get(formDetails, "groupBy")
           })(
-            <Select allowClear>
+            <Select allowClear onChange={() => this.props.onSettingsChange()}>
               {[
                 ...(getFieldValue("visibleFields")
                   ? getFieldValue("visibleFields")
@@ -910,14 +915,14 @@ class DataLabForm extends React.Component {
           {getFieldDecorator("emailAccess", {
             initialValue: _.get(formDetails, "emailAccess") || false,
             valuePropName: "checked"
-          })(<Checkbox />)}
+          })(<Checkbox onChange={() => this.props.onSettingsChange()}/>)}
         </Form.Item>
 
         <Form.Item {...formItemLayout} label="Allow access via LTI">
           {getFieldDecorator("ltiAccess", {
             initialValue: _.get(formDetails, "ltiAccess") || false,
             valuePropName: "checked"
-          })(<Checkbox />)}
+          })(<Checkbox onChange={() => this.props.onSettingsChange()}/>)}
         </Form.Item>
 
         {(getFieldValue("ltiAccess") || getFieldValue("emailAccess")) && (
@@ -949,7 +954,7 @@ class DataLabForm extends React.Component {
                 ],
                 initialValue: _.get(formDetails, "permission")
               })(
-                <Select>
+                <Select onChange={() => this.props.onSettingsChange()}>
                   {labels.map(label => (
                     <Select.Option value={label} key={label}>
                       {label}
@@ -969,7 +974,7 @@ class DataLabForm extends React.Component {
                 ],
                 initialValue: _.get(formDetails, "restriction", "private")
               })(
-                <Select>
+                <Select onChange={() => this.props.onSettingsChange()}>
                   <Select.Option value="private">
                     <Tooltip
                       title="Users can only see and edit the records for which they have
