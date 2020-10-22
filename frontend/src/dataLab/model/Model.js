@@ -282,6 +282,16 @@ class Model extends React.Component {
                     onClick={() => this.addModule("computed")}
                   />
                 </Tooltip>
+
+                <Tooltip title="Add an action">
+                  <Button
+                    icon="form"
+                    size="large"
+                    className="action"
+                    onClick={() => console.log("action pls")}
+                    style={{marginLeft: "10px"}}
+                  />
+                </Tooltip>
               </div>
             </div>
           </Affix>
