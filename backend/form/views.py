@@ -451,11 +451,22 @@ def ImportData(request, id):
     except:
         raise NotFound()
 
+    original_columns = [form.primary]
+    
+    for col in form.fields:
+        original_columns.append(col.name)
+
+    data = pd.DataFrame(form.data)
+
     form_data = pd.DataFrame(form.data).set_index(form.primary).T.to_dict()
+    imported_data = (
+        pd.read_csv(request.data["file"])
+    )
 
     imported_data = (
-        pd.DataFrame.from_csv(request.data["file"])
+        imported_data
         .replace({pd.np.nan: None})
+        .set_index(imported_data.columns[0])
         .T.to_dict()
     )
     for primary, values in imported_data.items():
@@ -466,6 +477,11 @@ def ImportData(request, id):
         .rename_axis(form.primary)
         .reset_index()
     )
+
+    # remove the data that isn't included?
+    for col in form_data.columns:
+        if col not in original_columns:
+            form_data.drop([col], axis=1, inplace=True)
 
     # Replace NaN values with None
     form_data.replace({pd.np.nan: None}, inplace=True)
