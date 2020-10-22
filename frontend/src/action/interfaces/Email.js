@@ -487,11 +487,11 @@ class Email extends React.Component {
 
         <Divider dashed />
 
-        <div>
+        {/* <div>
           <h3>Email history</h3>
 
           {this.EmailHistory()}
-        </div>
+        </div> */}
 
         <Divider dashed />
 

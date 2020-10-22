@@ -54,6 +54,7 @@ class DatasourcePreview extends React.Component {
           rowKey={(record, index) => index}
           columns={columns}
           dataSource={data}
+          pagination={{ position: 'both', defaultPageSize: 10, showSizeChanger: true, pageSizeOptions: ['10', '25', '50']}}
         />
       </div>
     );
