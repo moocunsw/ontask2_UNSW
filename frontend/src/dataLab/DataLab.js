@@ -20,16 +20,16 @@ class DataLab extends React.Component {
   state = {
     fetching: true,
     forms: [],
-    changed: false
+    changed: false,
   };
 
   onSettingsChange = () => {
-    this.setState({ changed: true })
-  }
+    this.setState({ changed: true });
+  };
 
   componentDidUpdate(prevProps) {
     if (this.props.location !== prevProps.location) {
-      this.setState({ changed: false })
+      this.setState({ changed: false });
     }
   }
 
@@ -47,7 +47,7 @@ class DataLab extends React.Component {
           this.setState({
             fetching: false,
             datasources,
-            dataLabs
+            dataLabs,
           });
         },
         onError: (error, status) => {
@@ -56,13 +56,13 @@ class DataLab extends React.Component {
           } else {
             history.replace("/error");
           }
-        }
+        },
       });
     } else if (match.params.id) {
       apiRequest(`/datalab/${match.params.id}/access/`, {
         method: "GET",
-        onSuccess: selected => {
-          const { datasources, dataLabs, filter_details } = selected;
+        onSuccess: (selected) => {
+          const { datasources, dataLabs, filter_details, actions } = selected;
           delete selected.datasources;
           delete selected.dataLabs;
           this.setState({
@@ -70,7 +70,8 @@ class DataLab extends React.Component {
             selected,
             datasources,
             dataLabs,
-            filter_details
+            filter_details,
+            actions,
           });
         },
         onError: (error, status) => {
@@ -79,20 +80,20 @@ class DataLab extends React.Component {
           } else {
             history.replace("/error");
           }
-        }
+        },
       });
     } else {
       // The user must have cold-loaded the URL, so we have no container to reference
       // Therefore redirect the user back to the container list
       history.replace("/dashboard");
     }
-  };
+  }
 
-  updateDatalab = dataLab => {
+  updateDatalab = (dataLab) => {
     const { selected } = this.state;
     this.fetchData(null, null, dataLab.id);
     this.setState({
-      selected: { ...selected, ...dataLab }
+      selected: { ...selected, ...dataLab },
     });
   };
 
@@ -122,35 +123,43 @@ class DataLab extends React.Component {
   fetchData = (payload, setTableState, datalabId) => {
     const { match, history } = this.props;
 
-    setTableState && setTableState({filterOptions: payload, loading: true});
+    setTableState && setTableState({ filterOptions: payload, loading: true });
     if (!datalabId && !match.params.id) return;
 
     apiRequest(`/datalab/${datalabId || match.params.id}/filter/`, {
       method: "POST",
       payload: payload,
-      onSuccess: selected => {
+      onSuccess: (selected) => {
         const { filter_details } = selected;
-        this.setState({filter_details});
+        this.setState({ filter_details });
         if (!!setTableState && !!payload) {
           // Update Number of results
           payload.pagination.total = filter_details.paginationTotal;
-          setTableState({filterOptions: payload, loading: false});
+          setTableState({ filterOptions: payload, loading: false });
         }
       },
       onError: (error, status) => {
-        setTableState && setTableState({filterOptions: payload, loading: false});
+        setTableState &&
+          setTableState({ filterOptions: payload, loading: false });
         if (status === 403) {
           history.replace("/forbidden");
         } else {
           history.replace("/error");
         }
-      }
+      },
     });
-  }
+  };
 
   render() {
     const { match, history, location } = this.props;
-    const { fetching, datasources, dataLabs, selected, filter_details } = this.state;
+    const {
+      fetching,
+      datasources,
+      dataLabs,
+      selected,
+      filter_details,
+      actions
+    } = this.state;
     let menuKey = [location.pathname.split("/")[3]];
     if (menuKey[0] === "form") menuKey.push(location.pathname.split("/")[4]);
 
@@ -219,13 +228,30 @@ class DataLab extends React.Component {
 
                             {selected.forms.length > 0 && <Menu.Divider />}
 
-                            {selected.forms.map(form => (
+                            {selected.forms.map((form) => (
                               <Menu.Item key={form.id}>
                                 <Link to={`${match.url}/form/${form.id}`}>
                                   <span>{form.name}</span>
                                 </Link>
                               </Menu.Item>
                             ))}
+                          </SubMenu>
+                          <SubMenu
+                            key="action"
+                            title={
+                              <span>
+                                <span>Actions</span>
+                              </span>
+                            }
+                          >
+                            {actions.map((action) => (
+                              <Menu.Item key={action.id}>
+                                <span>{action.name}</span>
+                              </Menu.Item>
+                            ))}
+                            <Menu.Item key="test" onClick={() => console.log(this.state)}>
+                              printstate
+                            </Menu.Item>
                           </SubMenu>
                         </Menu.ItemGroup>
                       </Menu>
@@ -239,7 +265,7 @@ class DataLab extends React.Component {
                           to="/dashboard"
                           style={{
                             display: "inline-block",
-                            marginBottom: 20
+                            marginBottom: 20,
                           }}
                         >
                           <Icon type="arrow-left" style={{ marginRight: 5 }} />
@@ -259,7 +285,7 @@ class DataLab extends React.Component {
 
                           <Route
                             path={`${match.url}/settings`}
-                            render={props => (
+                            render={(props) => (
                               <Model
                                 {...props}
                                 {...selected}
@@ -275,7 +301,7 @@ class DataLab extends React.Component {
 
                           <Route
                             path={`${match.url}/data`}
-                            render={props => (
+                            render={(props) => (
                               <Data
                                 {...props}
                                 steps={selected.steps}
@@ -296,10 +322,10 @@ class DataLab extends React.Component {
 
                           <Route
                             path={`${match.url}/form/:formId`}
-                            render={props => {
+                            render={(props) => {
                               const formId = props.match.params.formId;
                               const formIndex = selected.forms.findIndex(
-                                form => form.id === formId
+                                (form) => form.id === formId
                               );
                               return (
                                 <DataLabForm
@@ -315,10 +341,12 @@ class DataLab extends React.Component {
                                     this.updateForms({
                                       formIndex,
                                       updatedForm,
-                                      isDelete
+                                      isDelete,
                                     })
                                   }
-                                  onSettingsChange={() => this.onSettingsChange()}
+                                  onSettingsChange={() =>
+                                    this.onSettingsChange()
+                                  }
                                   updateDatalab={this.updateDatalab}
                                   data={selected.data}
                                   forms={selected.forms}
@@ -354,7 +382,6 @@ class DataLab extends React.Component {
                             changed={this.state.changed}
                             onSettingsChange={() => this.onSettingsChange()}
                           />
-                          
                         </div>
                       )}
                     </div>
@@ -364,12 +391,14 @@ class DataLab extends React.Component {
             </Content>
           </Layout>
         </Content>
-        <Prompt when={this.state.changed} 
+        <Prompt
+          when={this.state.changed}
           message={(location, action) => {
-            if (this.state.changed) return "You have unsaved changed. Are you sure you want to navigate away from this page?"
+            if (this.state.changed)
+              return "You have unsaved changed. Are you sure you want to navigate away from this page?";
             else {
-              this.setState({ changed: false })
-              return true
+              this.setState({ changed: false });
+              return true;
             }
           }}
         />

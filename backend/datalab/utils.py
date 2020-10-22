@@ -145,9 +145,11 @@ def calculate_computed_field(formula, record, build_fields, tracking_feedback_da
 
                 elif len(split_column) == 2:
                     step_index, field_index = [int(i) for i in split_column]
-                    field = build_fields[step_index][field_index]
-                    value = record[field] if field in record else None
-                    values.append(cast_float(value) if is_numerical else value)
+                    if step_index in build_fields:
+                        if field_index in build_fields[step_index]:
+                            field = build_fields[step_index][field_index]
+                            value = record[field] if field in record else None
+                            values.append(cast_float(value) if is_numerical else value)
 
         return values
 
