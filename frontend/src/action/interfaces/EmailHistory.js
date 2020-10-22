@@ -168,7 +168,7 @@ class EmailHistory extends React.Component {
       ]}
       dataSource={job.emails}
       rowKey="email_id"
-      pagination={{ size: "small", pageSize: 5 }}
+      pagination={{ size: "small", defaultPageSize: 10, showSizeChanger: true, pageSizeOptions: ['10', '25', '50']}}
     />
   );
 

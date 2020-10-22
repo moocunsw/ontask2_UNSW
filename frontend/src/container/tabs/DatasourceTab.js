@@ -111,6 +111,7 @@ class DatasourceTab extends React.Component {
                     return { title: k, dataIndex: k };
                   })}
                   dataSource={datasource.data}
+                  pagination={{ position: 'both', defaultPageSize: 10, showSizeChanger: true, pageSizeOptions: ['10', '25', '50']}}
                 />
               </div>
             )
