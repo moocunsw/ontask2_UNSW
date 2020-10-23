@@ -93,7 +93,7 @@ def calculate_computed_field(formula, record, build_fields, tracking_feedback_da
             else 0
         )
 
-    def iterate_aggregation(columns, is_numerical=True, is_checkbox_group=False):
+    def iterate_aggregation(columns, is_numerical=True, is_checkbox_group=False, average=False):
         values = []
 
         for column in columns:
@@ -141,7 +141,10 @@ def calculate_computed_field(formula, record, build_fields, tracking_feedback_da
 
                     for field in build_fields[step_index]:
                         value = record[field] if field in record else None
-                        values.append(cast_float(value) if is_numerical else value)
+                        if value is None and average is True:
+                            values.append(cast_float(0))
+                        else:
+                            values.append(cast_float(value) if is_numerical else value)
 
                 elif len(split_column) == 2:
                     step_index, field_index = [int(i) for i in split_column]
@@ -149,7 +152,19 @@ def calculate_computed_field(formula, record, build_fields, tracking_feedback_da
                         if field_index in build_fields[step_index]:
                             field = build_fields[step_index][field_index]
                             value = record[field] if field in record else None
-                            values.append(cast_float(value) if is_numerical else value)
+                            if value is None and average is True:
+                                values.append(cast_float(0))
+                            else:
+                                values.append(cast_float(value) if is_numerical else value)
+                    else: 
+                        if step_index < len(build_fields):
+                            if field_index < len(build_fields[step_index]):
+                                field = build_fields[step_index][field_index]
+                                value = record[field] if field in record else None
+                                if value is None and average is True:
+                                    values.append(cast_float(0))
+                                else:
+                                    values.append(cast_float(value) if is_numerical else value)
 
         return values
 
@@ -185,7 +200,7 @@ def calculate_computed_field(formula, record, build_fields, tracking_feedback_da
 
             if aggregation_type == "sum":
                 aggregation_value = sum(iterate_aggregation(columns))
-
+                 
             if aggregation_type == "average":
                 values = iterate_aggregation(columns)
                 aggregation_value = sum(values) / len(values) if len(values) else 0

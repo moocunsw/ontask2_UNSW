@@ -11,7 +11,8 @@ import {
   Form,
   Input,
   Popover,
-  Select
+  Select,
+  Card,
 } from "antd";
 import { Editor } from "slate-react";
 import { Value } from "slate";
@@ -32,12 +33,12 @@ const initialValue = Value.fromJSON({
         type: "paragraph",
         nodes: [
           {
-            object: "text"
-          }
-        ]
-      }
-    ]
-  }
+            object: "text",
+          },
+        ],
+      },
+    ],
+  },
 });
 
 class ComputedFieldModal extends React.Component {
@@ -48,7 +49,7 @@ class ComputedFieldModal extends React.Component {
     error: null,
     treeData: null,
     addConstant: false,
-    constantValue: '',
+    constantValue: "",
   };
 
   generateTreeData = () => {
@@ -65,8 +66,8 @@ class ComputedFieldModal extends React.Component {
           step = step.datasource;
 
           const datasource =
-            datasources.find(datasource => datasource.id === step.id) ||
-            dataLabs.find(dataLab => dataLab.id === step.id);
+            datasources.find((datasource) => datasource.id === step.id) ||
+            dataLabs.find((dataLab) => dataLab.id === step.id);
           if (!datasource) return;
 
           treeData.push({
@@ -79,13 +80,13 @@ class ComputedFieldModal extends React.Component {
             value: `${i}`,
             children: (step.fields || []).map((field, j) => ({
               title: step.labels[field],
-              value: `${i}_${j}`
-            }))
+              value: `${i}_${j}`,
+            })),
           });
         }
 
         if (step.type === "form") {
-          step = (forms || []).find(form => form.id === step.form);
+          step = (forms || []).find((form) => form.id === step.form);
           treeData.push({
             title: (
               <span style={{ color: "#5E35B1" }}>
@@ -95,38 +96,39 @@ class ComputedFieldModal extends React.Component {
             ),
             value: `${i}`,
             children: (step.fields || []).map((field, j) => {
-              return ({
+              return {
                 title: field.name,
-                value: `${i}_${j}`
-              })
-            })
+                value: `${i}_${j}`,
+              };
+            }),
           });
         }
 
         if (step.type === "computed") {
-          const field = step.computed.fields[0]
-          console.log(field)
+          const field = step.computed.fields[0];
+          console.log(field);
           treeData.push({
             title: (
-              <span style={{color: "#52c41a"}}>
+              <span style={{ color: "#52c41a" }}>
                 <Icon type="calculator" style={{ marginRight: 5 }} />
                 {field.name}
               </span>
             ),
             value: `${i}`,
-            children: [{
-              title: field.name,
-              value: `${i}_0`
-            }]
-          })
+            children: [
+              {
+                title: field.name,
+                value: `${i}_0`,
+              },
+            ],
+          });
           // console.log("computed")
-          
         }
       });
 
     let tracking = [];
     if (actions && actions.length > 0)
-      actions.forEach(action => {
+      actions.forEach((action) => {
         if (action.emailJobs.length > 0) {
           tracking.push({
             title: (
@@ -136,7 +138,7 @@ class ComputedFieldModal extends React.Component {
               </span>
             ),
             value: `tracking_${action.id}`,
-            children: action.emailJobs.map(emailJob => {
+            children: action.emailJobs.map((emailJob) => {
               const initiatedAt = new Date(emailJob.initiated_at)
                 .toISOString()
                 .substring(0, 10);
@@ -145,9 +147,9 @@ class ComputedFieldModal extends React.Component {
                 title: this.TruncatedLabel(
                   `${initiatedAt} - ${emailJob.subject}`
                 ),
-                value: `tracking_${action.id}_${emailJob.job_id}`
+                value: `tracking_${action.id}_${emailJob.job_id}`,
               };
-            })
+            }),
           });
         }
       });
@@ -161,13 +163,13 @@ class ComputedFieldModal extends React.Component {
           </span>
         ),
         value: "tracking",
-        children: tracking
+        children: tracking,
       });
 
     return treeData;
   };
 
-  TruncatedLabel = label => {
+  TruncatedLabel = (label) => {
     return label.length > 25 ? (
       <Popover
         mouseLeaveDelay={0}
@@ -194,7 +196,7 @@ class ComputedFieldModal extends React.Component {
           // Manually reconstruct the block map
           // Using Value.fromJSON(formula.field) does not work, as functions
           // such as value.endBlock fail to reflect the imported block map
-          field.formula.document.nodes.forEach(node => {
+          field.formula.document.nodes.forEach((node) => {
             if (node.type !== "paragraph") this.editor.insertBlock(node);
           });
           newState.value = this.editor.value;
@@ -213,7 +215,7 @@ class ComputedFieldModal extends React.Component {
 
     if (nodes.length < 2) {
       this.setState({
-        error: "Formula cannot be empty"
+        error: "Formula cannot be empty",
       });
       return;
     }
@@ -221,18 +223,20 @@ class ComputedFieldModal extends React.Component {
     const lastBlock = value.endBlock.type;
     const hasUnclosedParenthesis = this.hasUnclosedParenthesis(value);
     const hasEmptyAggregation = nodes.find(
-      node =>
+      (node) =>
         node.type === "aggregation" &&
         (!("columns" in node.data) || node.data.columns.length < 1)
     );
 
     if (
-      !["aggregation", "field", "close-bracket", "constant"].includes(lastBlock) ||
+      !["aggregation", "field", "close-bracket", "constant"].includes(
+        lastBlock
+      ) ||
       hasUnclosedParenthesis ||
       hasEmptyAggregation
     ) {
       this.setState({
-        error: "Formula is invalid"
+        error: "Formula is invalid",
       });
       return;
     }
@@ -255,7 +259,7 @@ class ComputedFieldModal extends React.Component {
     this.setState({
       value: initialValue,
       error: null,
-      treeData: null
+      treeData: null,
     });
     form.resetFields();
     closeModal();
@@ -270,14 +274,14 @@ class ComputedFieldModal extends React.Component {
       onOk: () => {
         onDelete(fieldIndex);
         this.handleClose();
-      }
+      },
     });
   };
 
-  renderBlock = props => {
+  renderBlock = (props) => {
     const { attributes, node } = props;
     const { treeData } = this.state;
-    console.log(node.type)
+    console.log(node.type);
     switch (node.type) {
       case "paragraph":
         return (
@@ -287,10 +291,9 @@ class ComputedFieldModal extends React.Component {
               display: "inline-flex",
               margin: 0,
               height: 0,
-              alignItems: "center"
+              alignItems: "center",
             }}
-          >
-          </p>
+          ></p>
         );
       case "aggregation": {
         const type = node.data.get("type");
@@ -307,13 +310,13 @@ class ComputedFieldModal extends React.Component {
                 display: "inline-flex",
                 alignItems: "center",
                 background: "#FAFAFA",
-                margin: "2px 5px 2px 0"
+                margin: "2px 5px 2px 0",
               }}
             >
               <div
                 style={{
                   padding: "0 5px",
-                  cursor: "default"
+                  cursor: "default",
                 }}
               >
                 {type}:
@@ -329,9 +332,9 @@ class ComputedFieldModal extends React.Component {
                   dropdownMatchSelectWidth={false}
                   className="tree-select"
                   value={columns}
-                  onChange={columns => {
+                  onChange={(columns) => {
                     this.editor.setNodeByKey(node.key, {
-                      data: { type, columns, delimiter }
+                      data: { type, columns, delimiter },
                     });
                   }}
                 />
@@ -347,12 +350,12 @@ class ComputedFieldModal extends React.Component {
                     width: 100,
                     marginRight: 5,
                     border: "1px solid #757575",
-                    borderRadius: 3
+                    borderRadius: 3,
                   }}
                   value={delimiter === undefined ? "," : delimiter}
-                  onChange={delimiter => {
+                  onChange={(delimiter) => {
                     this.editor.setNodeByKey(node.key, {
-                      data: { type, columns, delimiter }
+                      data: { type, columns, delimiter },
                     });
                   }}
                 >
@@ -379,7 +382,7 @@ class ComputedFieldModal extends React.Component {
               margin: "2px 5px 2px 0",
               lineHeight: "2.3em",
               background: "#FAFAFA",
-              cursor: "default"
+              cursor: "default",
             }}
           >
             {name}
@@ -392,7 +395,7 @@ class ComputedFieldModal extends React.Component {
           "+": "+",
           "-": "−",
           "*": "×",
-          "/": "÷"
+          "/": "÷",
         };
         return (
           <div
@@ -404,7 +407,7 @@ class ComputedFieldModal extends React.Component {
               margin: "2px 5px 2px 0",
               lineHeight: "2.3em",
               background: "#FAFAFA",
-              cursor: "default"
+              cursor: "default",
             }}
           >
             {typeMap[type]}
@@ -418,7 +421,7 @@ class ComputedFieldModal extends React.Component {
               display: "inline-block",
               fontSize: "200%",
               marginRight: 5,
-              marginTop: -5
+              marginTop: -5,
             }}
           >
             (
@@ -432,7 +435,7 @@ class ComputedFieldModal extends React.Component {
               display: "inline-block",
               fontSize: "200%",
               marginRight: 5,
-              marginTop: -5
+              marginTop: -5,
             }}
           >
             )
@@ -440,18 +443,18 @@ class ComputedFieldModal extends React.Component {
         );
       }
       case "constant": {
-        const value = node.data.get("value")
+        const value = node.data.get("value");
         return (
           <div
             style={{
               display: "inline-block",
               marginRight: 5,
-              marginTop: -5
+              marginTop: -5,
             }}
           >
-            { value } 
+            {value}
           </div>
-        )
+        );
       }
       default:
         return;
@@ -462,10 +465,10 @@ class ComputedFieldModal extends React.Component {
     this.setState({ value });
   };
 
-  hasUnclosedParenthesis = formula => {
+  hasUnclosedParenthesis = (formula) => {
     let hasUnclosedParenthesis = false;
 
-    formula.toJSON().document.nodes.forEach(block => {
+    formula.toJSON().document.nodes.forEach((block) => {
       if (block.type === "open-bracket") hasUnclosedParenthesis = true;
       if (block.type === "close-bracket" && hasUnclosedParenthesis)
         hasUnclosedParenthesis = false;
@@ -487,7 +490,7 @@ class ComputedFieldModal extends React.Component {
             style={{ padding: "0 10px", borderRadius: "4px 0 0 4px" }}
             onClick={() => {
               this.editor.insertBlock({
-                type: "open-bracket"
+                type: "open-bracket",
               });
             }}
             disabled={
@@ -504,11 +507,11 @@ class ComputedFieldModal extends React.Component {
             style={{
               padding: "0 10px",
               borderRadius: "0 4px 4px 0",
-              marginRight: 5
+              marginRight: 5,
             }}
             onClick={() => {
               this.editor.insertBlock({
-                type: "close-bracket"
+                type: "close-bracket",
               });
             }}
             disabled={
@@ -526,10 +529,10 @@ class ComputedFieldModal extends React.Component {
   AggregationFunctions = () => {
     const { value } = this.state;
 
-    const handleMenuClick = e => {
+    const handleMenuClick = (e) => {
       this.editor.insertBlock({
         type: "aggregation",
-        data: { type: e.key, delimiter: e.key === "concat" && "," }
+        data: { type: e.key, delimiter: e.key === "concat" && "," },
       });
     };
 
@@ -568,29 +571,30 @@ class ComputedFieldModal extends React.Component {
   };
 
   changeConstantValue = (e) => {
-    this.setState({ constantValue: e.target.value})
-  }
+    this.setState({ constantValue: e.target.value });
+  };
 
   Constants = () => {
-
-    const { value, constantValue, addConstant } = this.state
+    const { value, constantValue, addConstant } = this.state;
 
     const handleAddClick = (value) => {
       this.editor.insertBlock({
-        type: 'constant',
-        data: { value: value }
-      })
-      return true
-    }
+        type: "constant",
+        data: { value: value },
+      });
+      return true;
+    };
 
     const input = (
       <Button
         onClick={() => {
-          this.setState({ addConstant: !this.state.addConstant})
+          this.setState({ addConstant: !this.state.addConstant });
         }}
-        style={{marginTop: 5, marginRight: 5}}
-      >Add Constant { addConstant ? <Icon type="up" /> : <Icon type="down" /> }</Button>
-    )
+        style={{ marginTop: 5, marginRight: 5 }}
+      >
+        Add Constant {addConstant ? <Icon type="up" /> : <Icon type="down" />}
+      </Button>
+    );
 
     const lastBlock = value.endBlock.type;
 
@@ -598,45 +602,63 @@ class ComputedFieldModal extends React.Component {
       <div>
         {input}
         {this.state.addConstant ? (
-          <div style={{marginBottom: 5}}>
-            <Input style={{width: "50%", marginTop: 5, marginRight: 5}} onChange={this.changeConstantValue} value={this.state.constantValue} />
+          <div style={{ marginBottom: 5 }}>
+            <Input
+              style={{ width: "50%", marginTop: 5, marginRight: 5 }}
+              onChange={this.changeConstantValue}
+              value={this.state.constantValue}
+            />
             <Button
-              disabled={!["paragraph", "open-bracket", "operator"].includes(lastBlock)}
+              disabled={
+                !["paragraph", "open-bracket", "operator"].includes(lastBlock)
+              }
               onClick={() => {
-                handleAddClick(constantValue)
+                handleAddClick(constantValue);
               }}
               type="primary"
-            >Add</Button>
-          </div>)
-        : null}
+            >
+              Add
+            </Button>
+          </div>
+        ) : null}
       </div>
-    )
-  }
+    );
+  };
 
   Columns = () => {
     const { value, treeData } = this.state;
 
-    const handleMenuClick = e => {
+    const handleMenuClick = (e) => {
       this.editor.insertBlock({
         type: "field",
-        data: { name: e.key }
+        data: { name: e },
+        // data: { name: e.key}
       });
     };
 
     const menu = (
-      <Menu onClick={handleMenuClick}>
+      <Menu
+        // onClick={handleMenuClick}
+        style={{ maxHeight: "400px", overflow: "auto" }}
+      >
         {treeData &&
           treeData.map((step, i) => {
             if (step.value === "tracking") return null;
 
             return (
-              <Menu.SubMenu
-                key={i}
-                title={step.title}
-                children={step.children.map((field, j) => (
-                  <Menu.Item key={field.title}>{field.title}</Menu.Item>
-                ))}
-              />
+              <Menu.SubMenu popupOffset={[0, 0]} key={i} title={step.title}>
+                <div style={{ maxHeight: "400px", overflow: "auto" }}>
+                  {step.children.map((field, j) => (
+                    <Card
+                      hoverable
+                      key={field.title}
+                      onClick={() => handleMenuClick(field.title)}
+                    >
+                      {field.title}
+                    </Card>
+                  ))}
+                </div>
+              </Menu.SubMenu>
             );
           })}
       </Menu>
@@ -662,10 +684,10 @@ class ComputedFieldModal extends React.Component {
   Operators = () => {
     const { value } = this.state;
 
-    const handleMenuClick = e => {
+    const handleMenuClick = (e) => {
       this.editor.insertBlock({
         type: "operator",
-        data: { type: e.key }
+        data: { type: e.key },
       });
     };
 
@@ -685,7 +707,9 @@ class ComputedFieldModal extends React.Component {
         overlay={menu}
         trigger={["click"]}
         disabled={
-          !["aggregation", "field", "close-bracket", "constant"].includes(lastBlock.type) ||
+          !["aggregation", "field", "close-bracket", "constant"].includes(
+            lastBlock.type
+          ) ||
           (lastBlock.type === "aggregation" &&
             ["concat", "list"].includes(lastBlock.data.get("type")))
         }
@@ -744,63 +768,65 @@ class ComputedFieldModal extends React.Component {
           </div>
         }
       >
-        <FormItem
-          {...FormItemLayout}
-          label={
-            <div className="field_label">
-              Field name
-              <Tooltip title="The name for this field in the DataLab">
-                <Icon type="question-circle-o" />
-              </Tooltip>
-            </div>
-          }
-        >
-          {getFieldDecorator("name", {
-            rules: [
-              { required: true, message: "Field name is required" },
-              {
-                message: "Field name is already being used in the DataLab",
-                validator: (rule, value, cb) => {
-                  if (field && field.name === value) cb();
-                  labels.some(label => label === value) ? cb(true) : cb();
-                }
-              }
-            ],
-            initialValue: field && field.name
-          })(<Input />)}
-        </FormItem>
+        <div style={{ height: "80vh" }}>
+          <FormItem
+            {...FormItemLayout}
+            label={
+              <div className="field_label">
+                Field name
+                <Tooltip title="The name for this field in the DataLab">
+                  <Icon type="question-circle-o" />
+                </Tooltip>
+              </div>
+            }
+          >
+            {getFieldDecorator("name", {
+              rules: [
+                { required: true, message: "Field name is required" },
+                {
+                  message: "Field name is already being used in the DataLab",
+                  validator: (rule, value, cb) => {
+                    if (field && field.name === value) cb();
+                    labels.some((label) => label === value) ? cb(true) : cb();
+                  },
+                },
+              ],
+              initialValue: field && field.name,
+            })(<Input />)}
+          </FormItem>
 
-        <div className="toolbar">
-          {this.Parentheses()}
-          {this.AggregationFunctions()}
-          {this.Columns()}
-          {this.Operators()}
-          {this.Constants()}
-          {this.DeleteBlock()}
+          <div className="toolbar">
+            {this.Parentheses()}
+            {this.AggregationFunctions()}
+            {this.Columns()}
+            {this.Operators()}
+            {this.Constants()}
+            {this.DeleteBlock()}
+          </div>
+
+          <Editor
+            readOnly
+            ref={(editor) => (this.editor = editor)}
+            value={value}
+            onChange={this.onChange}
+            renderBlock={this.renderBlock}
+            placeholder="Create a formula using the buttons above"
+            style={{
+              border: "2px solid #ddd",
+              borderRadius: 5,
+              padding: 5,
+              minHeight: 60,
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              whiteSpace: "normal",
+            }}
+          />
+
+          {error && (
+            <Alert message={error} type="error" style={{ marginTop: "10px" }} />
+          )}
         </div>
-
-        <Editor
-          readOnly
-          ref={editor => this.editor = editor}
-          value={value}
-          onChange={this.onChange}
-          renderBlock={this.renderBlock}
-          placeholder="Create a formula using the buttons above"
-          style={{
-            border: "2px solid #ddd",
-            borderRadius: 5,
-            padding: 5,
-            minHeight: 60,
-            display: "flex",
-            flexWrap: "wrap",
-            alignItems: "center",
-            whiteSpace: "normal"
-          }}
-        />
-
-        {error && (
-          <Alert message={error} type="error" style={{ marginTop: "10px" }} />
-        )}
       </Modal>
     );
   }
