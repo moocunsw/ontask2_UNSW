@@ -8,7 +8,7 @@ import ModelContext from "../ModelContext";
 const FormItem = Form.Item;
 const { Option } = Select;
 
-class FormModule extends React.Component {
+class ActionModule extends React.Component {
   static contextType = ModelContext;
 
   form = memoize(formId => {
@@ -22,33 +22,8 @@ class FormModule extends React.Component {
     const { getFieldDecorator, getFieldValue } = form;
 
     getFieldDecorator(`steps[${stepIndex}].type`, {
-      initialValue: "form"
+      initialValue: "action"
     });
-
-    // Initialize the array that will hold the datasource's actions
-    let actions = [
-      // <Tooltip title="Export/import fields">
-      //   <Icon
-      //     type="select"
-      //     onClick={() =>
-      //       this.setState({ importExport: { visible: true, type: "export" } })
-      //     }
-      //   />
-      // </Tooltip>
-    ];
-
-    // if (getFieldValue(`steps[${stepIndex}].form.webForm.active`))
-    //   actions.push(
-    //     <Tooltip title="Access URL">
-    //       <a
-    //         href={`/datalab/${selectedId}/form/${stepIndex}`}
-    //         target="_blank"
-    //         rel="noopener noreferrer"
-    //       >
-    //         <Icon type="global" />
-    //       </a>
-    //     </Tooltip>
-    //   );
 
     // If this is the last step, show the delete button
     if ((stepKeys || []).length === stepIndex + 1)
@@ -145,4 +120,4 @@ class FormModule extends React.Component {
   }
 }
 
-export default FormModule;
+export default ActionModule;

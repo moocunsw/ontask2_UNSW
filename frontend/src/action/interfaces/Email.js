@@ -483,6 +483,7 @@ class Email extends React.Component {
           updateEmailSettings={this.updateEmailSettings}
           options={options}
           form={form}
+          locked={emailLocked}
         />
 
         <Divider dashed />
