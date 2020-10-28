@@ -283,7 +283,7 @@ class Model extends React.Component {
                   />
                 </Tooltip>
 
-                <Tooltip title="Add an action">
+                {/* <Tooltip title="Add an action">
                   <Button
                     icon="form"
                     size="large"
@@ -291,7 +291,7 @@ class Model extends React.Component {
                     onClick={() => console.log("action pls")}
                     style={{marginLeft: "10px"}}
                   />
-                </Tooltip>
+                </Tooltip> */}
               </div>
             </div>
           </Affix>

@@ -7,20 +7,21 @@ import {
   notification,
   Table,
   Tag,
-  Drawer
+  Drawer,
 } from "antd";
 
 import apiRequest from "../../shared/apiRequest";
 import ContainerContext from "../ContainerContext";
+import AdminStepModal from "./modals/AdminStepModal";
 
 const confirm = Modal.confirm;
 
 class DataLabTab extends React.Component {
   static contextType = ContainerContext;
 
-  state = { filter: null, deleting: {}, cloning: {}, drawer: {} };
+  state = { filter: null, deleting: {}, cloning: {}, drawer: {}, visibleAdminStepModal: false, stepDataLab: {}, stepLoading: false };
 
-  deleteDataLab = dataLabId => {
+  deleteDataLab = (dataLabId) => {
     const { fetchDashboard } = this.context;
 
     confirm({
@@ -32,7 +33,7 @@ class DataLabTab extends React.Component {
       cancelText: "Cancel",
       onOk: () => {
         this.setState({
-          deleting: { [dataLabId]: true }
+          deleting: { [dataLabId]: true },
         });
 
         apiRequest(`/datalab/${dataLabId}/`, {
@@ -42,22 +43,22 @@ class DataLabTab extends React.Component {
             fetchDashboard();
             notification["success"]({
               message: "DataLab deleted",
-              description: "The DataLab was successfully deleted."
+              description: "The DataLab was successfully deleted.",
             });
           },
-          onError: error => {
+          onError: (error) => {
             this.setState({ deleting: { [dataLabId]: false } });
             notification["error"]({
               message: "DataLab deletion failed",
-              description: error
+              description: error,
             });
-          }
+          },
         });
-      }
+      },
     });
   };
 
-  cloneDataLab = datalabId => {
+  cloneDataLab = (datalabId) => {
     const { fetchDashboard } = this.context;
 
     confirm({
@@ -65,7 +66,7 @@ class DataLabTab extends React.Component {
       content: "Are you sure you want to clone this DataLab?",
       onOk: () => {
         this.setState({
-          cloning: { [datalabId]: true }
+          cloning: { [datalabId]: true },
         });
 
         apiRequest(`/datalab/${datalabId}/clone_datalab/`, {
@@ -75,25 +76,25 @@ class DataLabTab extends React.Component {
             fetchDashboard();
             notification["success"]({
               message: "DataLab cloned",
-              description: "The DataLab was successfully cloned."
+              description: "The DataLab was successfully cloned.",
             });
           },
-          onError: error => {
+          onError: (error) => {
             this.setState({ cloning: { [datalabId]: false } });
             notification["error"]({
               message: "DataLab cloning failed",
-              description: error
+              description: error,
             });
-          }
+          },
         });
-      }
+      },
     });
   };
 
   previewDatasource = (objectId, isDatasource) => {
     apiRequest(`/${isDatasource ? "datasource" : "datalab"}/${objectId}/`, {
       method: "GET",
-      onSuccess: datasource =>
+      onSuccess: (datasource) =>
         this.setState({
           drawer: {
             title: datasource.name,
@@ -107,19 +108,19 @@ class DataLabTab extends React.Component {
                 <Table
                   style={{ maxHeight: "80vh" }}
                   rowKey={(record, index) => index}
-                  columns={Object.keys(datasource.data[0]).map(k => {
+                  columns={Object.keys(datasource.data[0]).map((k) => {
                     return { title: k, dataIndex: k };
                   })}
                   dataSource={datasource.data}
                 />
               </div>
-            )
-          }
-        })
+            ),
+          },
+        }),
     });
   };
 
-  previewForm = form => {
+  previewForm = (form) => {
     this.setState({
       drawer: {
         title: form.name,
@@ -129,73 +130,80 @@ class DataLabTab extends React.Component {
             rowKey={(record, index) => index}
             columns={
               form.data.length > 0
-                ? Object.keys(form.data[0]).map(k => {
+                ? Object.keys(form.data[0]).map((k) => {
                     return { title: k, dataIndex: k };
                   })
                 : []
             }
             dataSource={form.data}
           />
-        )
-      }
+        ),
+      },
     });
   };
+
+  openAdminStepsModal = async (datalab) => {
+    this.setState({ visibleAdminStepModal: true, stepDataLab: datalab })
+    console.log(datalab)
+    // make api call here
+    // this.setState({ stepDataLab: {}, loading: false })
+  }
 
   /* 
     To check if another datalab is dependent on this one before deleting.
   */
-  checkDependencies = dataLabId => {
-    const { dataLabs } = this.props
+  checkDependencies = (dataLabId) => {
+    const { dataLabs } = this.props;
     for (let dataLab of dataLabs) {
       for (let step of dataLab.steps) {
         if (step.datasource) {
-          if (step.datasource.id == dataLabId) return true
+          if (step.datasource.id == dataLabId) return true;
         }
       }
     }
-    return false
-  }
+    return false;
+  };
 
   render() {
     const { containerId, dataLabs, datasources } = this.props;
     const { deleting, cloning, drawer } = this.state;
     const { history } = this.context;
-
+    const isAdmin = sessionStorage.getItem("group") === "admin";
     const columns = [
       {
         title: "Name",
         dataIndex: "name",
         key: "name",
         sorter: (a, b) => a.name.localeCompare(b.name),
-        defaultSortOrder: "ascend"
+        defaultSortOrder: "ascend",
       },
       {
         title: "Modules",
         dataIndex: "steps",
         key: "modules",
-        render: steps => {
+        render: (steps) => {
           return steps.map((step, stepIndex) => {
             if (step.type === "datasource") {
               const datasource = datasources.find(
-                datasource => datasource.id === step.datasource.id
+                (datasource) => datasource.id === step.datasource.id
               );
               const dataLab = dataLabs.find(
-                dataLab => dataLab.id === step.datasource.id
+                (dataLab) => dataLab.id === step.datasource.id
               );
               // if (dataLab != undefined) {
-                return (
-                  <Tag
-                    color="blue"
-                    key={stepIndex}
-                    style={{ margin: 3 }}
-                    onClick={() =>
-                      this.previewDatasource(step.datasource.id, !!datasource)
-                    }
-                  >
-                    <Icon type="database" style={{ marginRight: 5 }} />
-                    {datasource ? datasource.name : dataLab.name}
-                  </Tag>
-                );
+              return (
+                <Tag
+                  color="blue"
+                  key={stepIndex}
+                  style={{ margin: 3 }}
+                  onClick={() =>
+                    this.previewDatasource(step.datasource.id, !!datasource)
+                  }
+                >
+                  <Icon type="database" style={{ marginRight: 5 }} />
+                  {datasource ? datasource.name : dataLab.name}
+                </Tag>
+              );
               // }
             } else if (step.type === "form") {
               return (
@@ -219,12 +227,12 @@ class DataLabTab extends React.Component {
             }
             return null;
           });
-        }
+        },
       },
       {
         title: "Actions",
         key: "actions",
-        render: (text, dataLab) => (
+        render: (text, dataLab, steps) => (
           <div>
             <Tooltip title="Edit DataLab settings">
               <Button
@@ -255,6 +263,19 @@ class DataLabTab extends React.Component {
               />
             </Tooltip>
 
+            {isAdmin ? (
+              <Tooltip title="View Steps Only">
+                <Button
+                  onClick={() => {
+                    // make request to server
+                    this.openAdminStepsModal(dataLab)
+                  }}
+                >
+                  <Icon style={{color: 'orange'}} type="exclamation-circle"/>
+                </Button>
+              </Tooltip>
+            ) : null}
+            
             <Tooltip title="Delete DataLab">
               <Button
                 style={{ margin: 3 }}
@@ -263,11 +284,12 @@ class DataLabTab extends React.Component {
                 loading={dataLab.id in deleting && deleting[dataLab.id]}
                 onClick={() => {
                   // check if this datalab.id is a part of any of the other sources
-                  if (!this.checkDependencies(dataLab.id)) this.deleteDataLab(dataLab.id)
+                  if (!this.checkDependencies(dataLab.id))
+                    this.deleteDataLab(dataLab.id);
                   else {
                     notification["error"]({
                       message: "DataLab deletion failed",
-                      description: `Other datalabs are dependent on "${dataLab.name}". Delete the others first.`
+                      description: `Other datalabs are dependent on "${dataLab.name}". Delete the others first.`,
                     });
                   }
                   // this.deleteDataLab(dataLab.id)
@@ -275,8 +297,8 @@ class DataLabTab extends React.Component {
               />
             </Tooltip>
           </div>
-        )
-      }
+        ),
+      },
     ];
 
     return (
@@ -288,7 +310,7 @@ class DataLabTab extends React.Component {
           onClick={() =>
             history.push({
               pathname: "/datalab",
-              state: { containerId }
+              state: { containerId },
             })
           }
         >
@@ -311,8 +333,17 @@ class DataLabTab extends React.Component {
           columns={columns}
           rowKey="id"
           locale={{
-            emptyText: "No DataLabs have been created yet"
+            emptyText: "No DataLabs have been created yet",
           }}
+        />
+        
+        <AdminStepModal 
+          loading={this.state.stepLoading}
+          dataLab={this.state.stepDataLab}
+          dataLabs={this.props.dataLabs}
+          datasources={this.props.datasources}
+          visible={this.state.visibleAdminStepModal}
+          onCancel={() => this.setState({ stepLoading: false, stepDataLab: {}, visibleAdminStepModal: false })}
         />
       </div>
     );
