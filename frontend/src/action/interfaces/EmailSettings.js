@@ -7,7 +7,8 @@ import {
   Checkbox,
   Icon,
   Tooltip,
-  Alert
+  Alert,
+  Spin
 } from "antd";
 import _ from "lodash";
 
@@ -34,7 +35,7 @@ class EmailSettings extends React.Component {
       ) {
         this.setState({
           error:
-            "You must have at least a dropdown or a textbox in order to collect feedback"
+            "You must have at least a dropdown or a textbox in order to collect feedback",
         });
         return;
       }
@@ -44,20 +45,20 @@ class EmailSettings extends React.Component {
       updateEmailSettings({
         emailSettings,
         onSuccess: () => this.setState({ loading: false }),
-        onError: error => this.setState({ loading: false, error })
+        onError: (error) => this.setState({ loading: false, error }),
       });
     });
   };
 
   render() {
-    const { form, emailSettings, options } = this.props;
+    const { form, emailSettings, options, locked } = this.props;
     const { loading, error } = this.state;
     const { getFieldDecorator, getFieldValue, setFieldsValue } = form;
 
     getFieldDecorator("feedbackOptionKeys", {
       initialValue: emailSettings
         ? emailSettings.list_options.map(() => _.uniqueId())
-        : []
+        : [],
     });
     const feedbackOptionKeys = getFieldValue("feedbackOptionKeys");
 
@@ -66,7 +67,7 @@ class EmailSettings extends React.Component {
         <FormItem {...narrowFormItemLayout} label="Email field">
           {getFieldDecorator("emailSettings.field", {
             rules: [{ required: true, message: "Email field is required" }],
-            initialValue: _.get(emailSettings, "field")
+            initialValue: _.get(emailSettings, "field"),
           })(
             <Select>
               {options.map((option, i) => {
@@ -83,14 +84,15 @@ class EmailSettings extends React.Component {
         <FormItem {...narrowFormItemLayout} label="Subject">
           {getFieldDecorator("emailSettings.subject", {
             rules: [{ required: true, message: "Subject is required" }],
-            initialValue: _.get(emailSettings, "subject")
+            initialValue: _.get(emailSettings, "subject"),
           })(<Input />)}
         </FormItem>
 
         <FormItem {...narrowFormItemLayout} label="From (name)">
           {getFieldDecorator("emailSettings.fromName", {
             initialValue:
-              _.get(emailSettings, "fromName") || sessionStorage.getItem("name")
+              _.get(emailSettings, "fromName") ||
+              sessionStorage.getItem("name"),
           })(<Input />)}
         </FormItem>
 
@@ -98,7 +100,8 @@ class EmailSettings extends React.Component {
           {getFieldDecorator("emailSettings.replyTo", {
             rules: [{ required: true, message: "Reply-to is required" }],
             initialValue:
-              _.get(emailSettings, "replyTo") || sessionStorage.getItem("email")
+              _.get(emailSettings, "replyTo") ||
+              sessionStorage.getItem("email"),
           })(<Input />)}
         </FormItem>
 
@@ -119,7 +122,7 @@ class EmailSettings extends React.Component {
         >
           {getFieldDecorator("emailSettings.include_feedback", {
             initialValue: _.get(emailSettings, "include_feedback") || false,
-            valuePropName: "checked"
+            valuePropName: "checked",
           })(<Checkbox />)}
         </FormItem>
 
@@ -130,7 +133,7 @@ class EmailSettings extends React.Component {
               background: "#F5F5F5",
               borderRadius: 5,
               margin: "20px -1px",
-              padding: "10px 20px 10px 0"
+              padding: "10px 20px 10px 0",
             }}
           >
             <FormItem
@@ -140,10 +143,10 @@ class EmailSettings extends React.Component {
             >
               {getFieldDecorator("emailSettings.feedback_list", {
                 initialValue: _.get(emailSettings, "feedback_list") || false,
-                valuePropName: "checked"
+                valuePropName: "checked",
               })(
                 <Checkbox
-                  onChange={e => {
+                  onChange={(e) => {
                     if (e.target.checked)
                       setFieldsValue({ feedbackOptionKeys: [_.uniqueId()] });
                     if (error && e.target.checked)
@@ -164,10 +167,10 @@ class EmailSettings extends React.Component {
                   {getFieldDecorator("emailSettings.list_question", {
                     rules: [
                       {
-                        required: true
-                      }
+                        required: true,
+                      },
                     ],
-                    initialValue: _.get(emailSettings, "list_question")
+                    initialValue: _.get(emailSettings, "list_question"),
                   })(
                     <Input placeholder="E.g. How would you rate this feedback?" />
                   )}
@@ -182,10 +185,10 @@ class EmailSettings extends React.Component {
                   {getFieldDecorator("emailSettings.list_type", {
                     rules: [
                       {
-                        required: true
-                      }
+                        required: true,
+                      },
                     ],
-                    initialValue: _.get(emailSettings, "list_type") || "radio"
+                    initialValue: _.get(emailSettings, "list_type") || "radio",
                   })(
                     <Select>
                       <Option value="dropdown">Dropdown</Option>
@@ -207,8 +210,8 @@ class EmailSettings extends React.Component {
                       setFieldsValue({
                         feedbackOptionKeys: [
                           ...feedbackOptionKeys,
-                          _.uniqueId()
-                        ]
+                          _.uniqueId(),
+                        ],
                       });
                     }}
                   >
@@ -223,7 +226,7 @@ class EmailSettings extends React.Component {
                       style={{
                         display: "flex",
                         justifyContent: "right",
-                        alignItems: "center"
+                        alignItems: "center",
                       }}
                       className="formlist_item"
                     >
@@ -233,13 +236,13 @@ class EmailSettings extends React.Component {
                           {
                             rules: [
                               {
-                                required: true
-                              }
+                                required: true,
+                              },
                             ],
                             initialValue: _.get(
                               emailSettings,
                               `list_options[${i}].label`
-                            )
+                            ),
                           }
                         )(<Input placeholder="Label" />)}
                       </FormItem>
@@ -252,7 +255,7 @@ class EmailSettings extends React.Component {
                             initialValue: _.get(
                               emailSettings,
                               `list_options[${i}].value`
-                            )
+                            ),
                           }
                         )(<Input placeholder="Value" />)}
                       </FormItem>
@@ -270,7 +273,7 @@ class EmailSettings extends React.Component {
 
                           form.setFieldsValue({
                             feedbackOptionKeys,
-                            "emailSettings.list_options": feedbackOptions
+                            "emailSettings.list_options": feedbackOptions,
                           });
                         }}
                       />
@@ -287,10 +290,10 @@ class EmailSettings extends React.Component {
             >
               {form.getFieldDecorator("emailSettings.feedback_textbox", {
                 initialValue: _.get(emailSettings, "feedback_textbox") || false,
-                valuePropName: "checked"
+                valuePropName: "checked",
               })(
                 <Checkbox
-                  onChange={e => {
+                  onChange={(e) => {
                     if (error && e.target.checked)
                       this.setState({ error: null });
                   }}
@@ -308,10 +311,10 @@ class EmailSettings extends React.Component {
                 {form.getFieldDecorator("emailSettings.textbox_question", {
                   rules: [
                     {
-                      required: true
-                    }
+                      required: true,
+                    },
                   ],
-                  initialValue: _.get(emailSettings, "textbox_question")
+                  initialValue: _.get(emailSettings, "textbox_question"),
                 })(
                   <Input placeholder="E.g. How useful was this correspondence?" />
                 )}
@@ -330,9 +333,18 @@ class EmailSettings extends React.Component {
         )}
 
         <div className="button">
-          <Button loading={loading} onClick={this.handleUpdate}>
-            Update
-          </Button>
+            <Button disabled={locked} loading={loading} onClick={this.handleUpdate}>
+              {locked ? (
+                <span>
+                  Emailing in progress, please wait
+                </span>
+              ) : (
+                <span>
+                  Update
+                </span>
+              )}
+            </Button>
+          
         </div>
       </Form>
     );

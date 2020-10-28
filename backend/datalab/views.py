@@ -601,3 +601,9 @@ def CreateDataLab(request):
     )
 
     return Response(response, status=HTTP_200_OK)
+
+# @api_view(["GET"])
+# def AdminStepView(request):
+#     datalab_id = request.query.get("datalab")
+#     print(datalab_id)
+#     return Response(status=HTTP_200_OK)
