@@ -128,6 +128,16 @@ class ActionTab extends React.Component {
                 />
               </Tooltip>
 
+              <Tooltip title="View Action Tracking/Feedback">
+                <Button
+                  style={{ margin: 3 }}
+                  icon="table"
+                  onClick={() => {
+                    history.push(`/action/${action.id}/email_history`)
+                  }}
+                />
+              </Tooltip>
+
               <Tooltip title="Clone action">
                 <Button
                   style={{ margin: 3 }}

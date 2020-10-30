@@ -94,7 +94,8 @@ def dump_datalab_data(**kwargs):
 @should_run
 def workflow_send_email(action_id=None, job_type="Scheduled", **kwargs):
     """ Send email based on the schedule in workflow model """
-    logger.info("email.initiate", extra={"action": action_id, "job_type": job_type})
+    logger.info("email.initiate", extra={
+                "action": action_id, "job_type": job_type})
 
     from workflow.models import Workflow, EmailJob, Email
 
@@ -121,7 +122,7 @@ def workflow_send_email(action_id=None, job_type="Scheduled", **kwargs):
     batch_pause = EMAIL_BATCH_PAUSE if EMAIL_BATCH_PAUSE else 0
 
     email_batches = [
-        messages[i : i + batch_size] for i in range(0, len(messages), batch_size)
+        messages[i: i + batch_size] for i in range(0, len(messages), batch_size)
     ]
 
     recipient_count = 0
@@ -223,21 +224,23 @@ def workflow_send_email(action_id=None, job_type="Scheduled", **kwargs):
         if len(failures) == 0 and null_recipients == 0:
             send_email(
                 action.container.owner,
-                "Email job completed",
-                f"All {len(successes)} emails were successfully sent",
+                f"Email job completed - {action.container.code} - {action.name}",
+                f"{action.emailSettings.fromName} ({action.emailSettings.replyTo}) sent {action.name} from course {action.container.code}. All {len(successes)} emails were successfully sent.",
             )
         else:
             failures_concat = ", ".join(failures)
             send_email(
                 action.container.owner,
-                "Email job completed",
+                f"Email job completed - {action.container.code} - {action.name}",
                 f"""
+                    {f"{action.emailSettings.fromName} ({action.emailSettings.replyTo}) sent {action.name} from course {action.container.code}."}
                     {f"The following {len(failures)} emails were unsuccessful: {failures_concat}<br><br>" if len(failures) else ""}
                     {f"There were {null_recipients} recipients without an email address<br><br>" if null_recipients > 0 else ""}
                     {f"The other {len(successes)} emails were successfully sent" if len(successes) else ""}
                 """,
             )
 
-    logger.info("email.complete", extra={"action": action_id, "job_type": job_type})
+    logger.info("email.complete", extra={
+                "action": action_id, "job_type": job_type})
 
     return "Email job completed."
