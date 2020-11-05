@@ -10,7 +10,7 @@ import {
   Table,
   Modal,
   Popover,
-  notification
+  notification,
 } from "antd";
 import moment from "moment";
 // import _ from "lodash";
@@ -30,9 +30,9 @@ class Email extends React.Component {
     const { action } = props;
 
     const options = [];
-    action.options.modules.forEach(step => {
+    action.options.modules.forEach((step) => {
       if (step.type === "datasource") {
-        step.fields.forEach(field => {
+        step.fields.forEach((field) => {
           options.push(field);
         });
       }
@@ -46,7 +46,8 @@ class Email extends React.Component {
       options,
       emailView: { visible: false },
       emailLocked: true,
-      intervalId: null
+      intervalId: null,
+      status: {}
     };
 
     this.dayMap = {
@@ -56,14 +57,14 @@ class Email extends React.Component {
       thu: { order: 3, label: "Thursday" },
       fri: { order: 4, label: "Friday" },
       sat: { order: 5, label: "Saturday" },
-      sun: { order: 6, label: "Sunday" }
+      sun: { order: 6, label: "Sunday" },
     };
 
     apiRequest(`/workflow/${action.id}/content/`, {
       method: "GET",
-      onSuccess: populatedContent =>
+      onSuccess: (populatedContent) =>
         this.setState({ populatedContent, previewing: false }),
-      onError: error => this.setState({ error, previewing: false })
+      onError: (error) => this.setState({ error, previewing: false }),
     });
   }
 
@@ -76,8 +77,7 @@ class Email extends React.Component {
     if (emailLocked && intervalId === null) {
       const newInterval = setInterval(this.checkEmailStatus, 5000);
       this.setState({ intervalId: newInterval });
-    }
-    else if (!emailLocked && intervalId !== null) {
+    } else if (!emailLocked && intervalId !== null) {
       clearInterval(intervalId);
       this.setState({ intervalId: null });
     }
@@ -104,13 +104,13 @@ class Email extends React.Component {
           notification["success"]({
             message: "Email job successfully initiated",
             description:
-              "Upon completion, you will receive an email outlining the job summary"
+              "Upon completion, you will receive an email outlining the job summary",
           });
           this.setState({ sending: false });
           const newInterval = setInterval(this.checkEmailStatus, 5000);
           this.setState({ intervalId: newInterval, emailLocked: true });
         },
-        onError: error => this.setState({ sending: false, error })
+        onError: (error) => this.setState({ sending: false, error }),
       });
     });
   };
@@ -120,11 +120,11 @@ class Email extends React.Component {
 
     apiRequest(`/workflow/${action.id}/locked/`, {
       method: "GET",
-      onSuccess: ({ emailLocked, emailJobs }) => {
-        this.setState({ emailLocked  });
+      onSuccess: ({ emailLocked, emailJobs, status }) => {
+        this.setState({ emailLocked, status });
         updateAction({ ...action, emailJobs });
       },
-      onError: error => console.log(error)
+      onError: (error) => console.log(error),
     });
   };
 
@@ -134,14 +134,14 @@ class Email extends React.Component {
     apiRequest(`/workflow/${action.id}/`, {
       method: "PATCH",
       payload: { emailSettings },
-      onSuccess: action => {
+      onSuccess: (action) => {
         notification["success"]({
-          message: "Email settings successfully updated."
+          message: "Email settings successfully updated.",
         });
         onSuccess();
         updateAction(action);
       },
-      onError: error => onError(error)
+      onError: (error) => onError(error),
     });
   };
 
@@ -153,34 +153,47 @@ class Email extends React.Component {
     apiRequest(`/workflow/${action.id}/schedule/`, {
       method: "PUT",
       payload,
-      onSuccess: action => {
+      onSuccess: (action) => {
         notification["success"]({
           message: `Schedule ${isCreate ? "created" : "updated"}`,
           description: `The schedule was successfully ${
             isCreate ? "created" : "updated"
-          }.`
+          }.`,
         });
         onSuccess();
         updateAction(action);
       },
-      onError: error => onError(error)
+      onError: (error) => onError(error),
     });
   };
+
+  unlockAction = () => {
+    const { action, updateAction } = this.props;
+
+    apiRequest(`/workflow/${action.id}/unlock_action/`, {
+      method: "POST",
+      onSuccess: ({ emailLocked }) => {
+        this.setState({ emailLocked });
+        updateAction({ ...action });
+      },
+      onError: (error) => console.log(error),
+    });
+  }
 
   deleteSchedule = ({ onSuccess, onError }) => {
     const { action, updateAction } = this.props;
 
     apiRequest(`/workflow/${action.id}/schedule/`, {
       method: "DELETE",
-      onSuccess: action => {
+      onSuccess: (action) => {
         notification["success"]({
           message: "Schedule deleted",
-          description: "The schedule was successfully deleted."
+          description: "The schedule was successfully deleted.",
         });
         onSuccess();
         updateAction(action);
       },
-      onError: error => onError(error)
+      onError: (error) => onError(error),
     });
   };
 
@@ -191,8 +204,8 @@ class Email extends React.Component {
       scheduler: {
         visible: true,
         selected: action.id,
-        data: { schedule: action.schedule }
-      }
+        data: { schedule: action.schedule },
+      },
     });
   };
 
@@ -200,7 +213,7 @@ class Email extends React.Component {
     this.setState({ scheduler: { visible: false, selected: null, data: {} } });
   };
 
-  FeedbackDetails = record => (
+  FeedbackDetails = (record) => (
     <div>
       <b>Feedback provided on:</b>
       <div>{moment(record.feedback_datetime).format("DD/MM/YYYY, HH:mm")}</div>
@@ -227,7 +240,7 @@ class Email extends React.Component {
     </div>
   );
 
-  TrackingDetails = record => (
+  TrackingDetails = (record) => (
     <div>
       <b>First tracked:</b>
       <div>{moment(record.first_tracked).format("DD/MM/YYYY, HH:mm")}</div>
@@ -241,7 +254,7 @@ class Email extends React.Component {
     </div>
   );
 
-  EmailJobDetails = job => (
+  EmailJobDetails = (job) => (
     <Table
       size="small"
       columns={[
@@ -267,7 +280,7 @@ class Email extends React.Component {
                   : feedback}
               </Popover>
             );
-          }
+          },
         },
         {
           title: "Tracking",
@@ -281,7 +294,7 @@ class Email extends React.Component {
               </Popover>
             ) : (
               <Icon type="close" />
-            )
+            ),
         },
         {
           title: "Content",
@@ -296,15 +309,15 @@ class Email extends React.Component {
                     visible: true,
                     recipient: record.recipient,
                     subject: job.subject,
-                    text
-                  }
+                    text,
+                  },
                 })
               }
             >
               View
             </span>
-          )
-        }
+          ),
+        },
       ]}
       dataSource={job.emails}
       rowKey="email_id"
@@ -329,7 +342,7 @@ class Email extends React.Component {
               title: "Date/Time",
               dataIndex: "initiated_at",
               key: "initiated_at",
-              render: text => moment(text).format("DD/MM/YYYY, HH:mm")
+              render: (text) => moment(text).format("DD/MM/YYYY, HH:mm"),
             },
             { title: "Type", dataIndex: "type", key: "type" },
             { title: "Subject", dataIndex: "subject", key: "subject" },
@@ -337,25 +350,23 @@ class Email extends React.Component {
               title: "Feedback",
               dataIndex: "included_feedback",
               key: "included_feedback",
-              render: text =>
-                text ? <Icon type="check" /> : <Icon type="close" />
+              render: (text) =>
+                text ? <Icon type="check" /> : <Icon type="close" />,
             },
             {
               title: "Tracking",
               render: (text, record) => {
                 const trackedCount = record.emails.filter(
-                  email => !!email.first_tracked
+                  (email) => !!email.first_tracked
                 ).length;
                 const trackedPct = Math.round(
                   (trackedCount / record.emails.length) * 100
                 );
                 return (
-                  <span>{`${trackedCount} of ${
-                    record.emails.length
-                  } (${trackedPct}%)`}</span>
+                  <span>{`${trackedCount} of ${record.emails.length} (${trackedPct}%)`}</span>
                 );
-              }
-            }
+              },
+            },
           ]}
           dataSource={action.emailJobs}
           expandedRowRender={this.EmailJobDetails}
@@ -385,7 +396,7 @@ class Email extends React.Component {
             <div
               className="email_content"
               dangerouslySetInnerHTML={{
-                __html: emailView.text
+                __html: emailView.text,
               }}
             />
           </div>
@@ -404,8 +415,12 @@ class Email extends React.Component {
       options,
       index,
       populatedContent,
-      emailLocked
+      emailLocked,
+      status
     } = this.state;
+
+    let isAdmin = false;
+    if (sessionStorage.getItem("group") === "admin") isAdmin = true;
 
     return (
       <div className="email">
@@ -532,7 +547,7 @@ class Email extends React.Component {
             <div className={`preview ${previewing && "loading"}`}>
               <div
                 dangerouslySetInnerHTML={{
-                  __html: populatedContent[index]
+                  __html: populatedContent[index],
                 }}
               />
             </div>
@@ -544,8 +559,33 @@ class Email extends React.Component {
               size="large"
               onClick={this.handleSubmit}
             >
-              {emailLocked ? "Emailing in progress, please wait" : "Send once-off email"}
+              {emailLocked
+                ? "Emailing in progress, please wait"
+                : "Send once-off email"}
+              
             </Button>
+
+            { emailLocked && Object.keys(status).length !== 0 ? (
+              <div>
+                <p>Successful: {status.successes}</p>
+                <p>Failures: {status.failures} </p>
+                <p>Remaining: {status.totalEmails-status.failures-status.successes}</p>
+              </div>
+            ) : null}
+
+            {isAdmin ? (
+              <Button
+                style={{ float: "right" }}
+                type="primary"
+                size="large"
+                disabled={!emailLocked}
+                onClick={() => {
+                  this.unlockAction();
+                }}
+              >
+                Unlock Action   
+              </Button>
+            ) : null}
           </div>
         )}
         {error && <Alert message={error} className="error" type="error" />}

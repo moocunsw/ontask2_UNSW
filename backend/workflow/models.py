@@ -132,6 +132,7 @@ class Workflow(Document):
     linkId = StringField(null=True)  # link_id is unique across workflow objects
     emailJobs = EmbeddedDocumentListField(EmailJob)
     emailLocked = BooleanField(default=False)
+    currentEmailJob = DictField(default={})
 
     @property
     def datalab_name(self):
@@ -186,9 +187,9 @@ class Workflow(Document):
                         #         print(key, step[key])
                         if (field in step.datasource.types):
                             types[label] = step.datasource.types[field]
-                        else:
-                            print("field not in types?")
-                            print("field: ", field)
+                        # else:
+                            # print("field not in types?")
+                            # print("field: ", field)
                         module_labels[field] = label
                     modules.append(module)
 
