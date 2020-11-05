@@ -21,6 +21,7 @@ class DataLab extends React.Component {
     fetching: true,
     forms: [],
     changed: false,
+    actions: []
   };
 
   onSettingsChange = () => {

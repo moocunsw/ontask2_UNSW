@@ -5,7 +5,7 @@ from rest_framework.decorators import detail_route, list_route
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from django.http import HttpResponse, JsonResponse
-from rest_framework.status import HTTP_200_OK
+from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 from mongoengine.queryset.visitor import Q
 
 import os
@@ -278,7 +278,7 @@ class WorkflowViewSet(viewsets.ModelViewSet):
 
         action = ActionSerializer(action).data
         return Response(
-            {"emailLocked": action["emailLocked"], "emailJobs": action["emailJobs"]}
+            {"emailLocked": action["emailLocked"], "emailJobs": action["emailJobs"], "status": action["currentEmailJob"]}
         )
 
     @list_route(methods=["get"], permission_classes=[AllowAny])
@@ -337,6 +337,22 @@ class WorkflowViewSet(viewsets.ModelViewSet):
         )
 
         return Response(status=HTTP_200_OK)
+
+    @detail_route(methods=["post"])
+    def unlock_action(self, request, id=None):
+        try:
+            action = self.get_object()
+            self.check_object_permissions(self.request, action)
+            action.emailLocked = False
+            action.save()
+        except:
+            logger.error('Action could not be unlocked', extra={"user": self.request.user.email, "action": str(action.id)})
+            return Response(status=HTTP_400_BAD_REQUEST)
+        
+        serializer = ActionSerializer(action).data
+        return Response(
+            {"emailLocked": action["emailLocked"]}
+        )
 
 
 class FeedbackView(APIView):

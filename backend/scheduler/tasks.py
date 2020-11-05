@@ -125,6 +125,13 @@ def workflow_send_email(action_id=None, job_type="Scheduled", **kwargs):
         messages[i: i + batch_size] for i in range(0, len(messages), batch_size)
     ]
 
+    action.currentEmailJob = {
+        "successes": 0,
+        "failures": 0,
+        "totalEmails": len(email_batches),
+    }
+    action.save()
+
     recipient_count = 0
     for batch_index, batch in enumerate(email_batches):
         logger.info(
@@ -208,7 +215,13 @@ def workflow_send_email(action_id=None, job_type="Scheduled", **kwargs):
                             "content": email_content,
                         },
                     )
-
+                action.currentEmailJob = {
+                    "successes": len(successes),
+                    "failures": len(failures),
+                    "totalEmails": len(email_batches),
+                }
+                action.save()
+                print('here', action.currentEmailJob)
                 recipient_count += 1
 
             if batch_index + 1 != len(email_batches) and batch_pause > 0:
