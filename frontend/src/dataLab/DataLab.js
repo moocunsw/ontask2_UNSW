@@ -24,8 +24,8 @@ class DataLab extends React.Component {
     actions: []
   };
 
-  onSettingsChange = () => {
-    this.setState({ changed: true });
+  onSettingsChange = (changed) => {
+    this.setState({ changed: changed });
   };
 
   componentDidUpdate(prevProps) {
@@ -295,7 +295,7 @@ class DataLab extends React.Component {
                                 selectedId={selected.id}
                                 updateDatalab={this.updateDatalab}
                                 changed={this.state.changed}
-                                onSettingsChange={() => this.onSettingsChange()}
+                                onSettingsChange={this.onSettingsChange}
                               />
                             )}
                           />
