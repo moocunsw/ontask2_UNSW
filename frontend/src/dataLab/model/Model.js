@@ -10,7 +10,7 @@ import {
   Affix,
   Icon,
   Select,
-  Checkbox
+  Checkbox,
 } from "antd";
 import _ from "lodash";
 import memoize from "memoize-one";
@@ -40,11 +40,11 @@ class Model extends React.Component {
     };
   }
 
-  setChanged = () => {
-    this.props.onSettingsChange()
-  }
+  setChanged = (changed) => {
+    this.props.onSettingsChange(changed);
+  };
 
-  labelsUsed = memoize(stepIndex => {
+  labelsUsed = memoize((stepIndex) => {
     const { form, forms } = this.props;
     const { getFieldValue } = form;
     let steps = getFieldValue("steps") || [];
@@ -56,17 +56,17 @@ class Model extends React.Component {
 
       if (step.type === "datasource" && "datasource" in step)
         stepLabels = Object.values(step.datasource.labels || {}).filter(
-          label => !!label
+          (label) => !!label
         );
       else if (step.type === "form") {
-        const relatedForm = forms.find(form => form.id === step.form);
+        const relatedForm = forms.find((form) => form.id === step.form);
         stepLabels = relatedForm
-          ? relatedForm.fields.map(field => field.name)
+          ? relatedForm.fields.map((field) => field.name)
           : [];
       } else if (step.type === "computed") {
         stepLabels = _.get(step, `${step.type}.fields`, [])
-          .filter(field => !!field.name)
-          .map(field => field.name);
+          .filter((field) => !!field.name)
+          .map((field) => field.name);
       }
 
       return [...labels, ...stepLabels];
@@ -87,30 +87,24 @@ class Model extends React.Component {
       if (step.type === "datasource") {
         if (_.get(step, "datasource.matching") === field) {
           const relatedDatasource = datasources.find(
-            datasource => datasource.id === step.datasource.id
+            (datasource) => datasource.id === step.datasource.id
           );
           if (!relatedDatasource) break;
 
-          return `The datasource component "${
-            relatedDatasource.name
-          }" is using it as a matching field.`;
+          return `The datasource component "${relatedDatasource.name}" is using it as a matching field.`;
         }
       }
 
       if (step.type === "form") {
-        const relatedForm = forms.find(form => form.id === step.form);
+        const relatedForm = forms.find((form) => form.id === step.form);
         if (!relatedForm) break;
 
         if (relatedForm.primary === field)
           return `The form "${relatedForm.name}" is using it as a primary key.`;
         else if (relatedForm.permission === field)
-          return `The form "${
-            relatedForm.name
-          }" is using it as a permission field.`;
+          return `The form "${relatedForm.name}" is using it as a permission field.`;
         else if ((relatedForm.visibleFields || []).includes(field))
-          return `The form "${
-            relatedForm.name
-          }" is using it as an additional field.`;
+          return `The form "${relatedForm.name}" is using it as an additional field.`;
       }
     }
 
@@ -136,28 +130,29 @@ class Model extends React.Component {
       apiRequest(selectedId ? `/datalab/${selectedId}/` : "/datalab/", {
         method: selectedId ? "PATCH" : "POST",
         payload: build,
-        onSuccess: dataLab => {
+        onSuccess: (dataLab) => {
           notification["success"]({
             message: `DataLab ${selectedId ? "updated" : "created"}`,
             description: `The DataLab was successfully ${
               selectedId ? "updated" : "created"
-            }.`
+            }.`,
           });
           this.setState({ loading: false });
           updateDatalab(dataLab);
           if (!selectedId)
             history.push({ pathname: `/datalab/${dataLab.id}/data` });
+          this.setChanged(false);
         },
-        onError: error => {
-          notification["error"]({ message: error })
+        onError: (error) => {
+          notification["error"]({ message: error });
           this.setState({ loading: false });
-        }
+        },
       });
     });
   };
 
-  addModule = type => {
-    const { form } = this.props;
+  addModule = (type) => {
+    const { form, selectedId } = this.props;
     const { stepKeys } = this.state;
     const { getFieldDecorator } = form;
 
@@ -168,14 +163,19 @@ class Model extends React.Component {
     }
 
     getFieldDecorator(`steps[${stepKeys.length}].type`, {
-      initialValue: type
+      initialValue: type,
     });
-    this.setState({ stepKeys: [...stepKeys, _.uniqueId()], error: null, changed: true });
-    this.setChanged()
+    this.setState({
+      stepKeys: [...stepKeys, _.uniqueId()],
+      error: null,
+    });
+    if (selectedId) {
+      this.setChanged(true);
+    }
   };
 
   deleteModule = () => {
-    const { form } = this.props;
+    const { form, selectedId } = this.props;
     const { stepKeys, steps } = this.state;
     const { getFieldValue, setFieldsValue } = form;
 
@@ -188,7 +188,7 @@ class Model extends React.Component {
       // initialValue against the "step" provided in the props of the module)
       steps: steps && steps.slice(0, -1),
     });
-    this.setChanged()
+    if (selectedId) this.setChanged(true);
 
     setFieldsValue({ steps: getFieldValue("steps").slice(0, -1) });
   };
@@ -203,7 +203,7 @@ class Model extends React.Component {
     // Allow modules to update
     steps[stepIndex] = updatedStep;
     this.setState({ steps });
-    this.setChanged()
+    this.setChanged(true);
   };
 
   render() {
@@ -220,7 +220,7 @@ class Model extends React.Component {
       emailAccess,
       ltiAccess,
       permission,
-      restriction
+      restriction,
     } = this.props;
     const { loading, error, stepKeys, steps } = this.state;
     const { getFieldDecorator, getFieldValue } = form;
@@ -238,7 +238,7 @@ class Model extends React.Component {
           actions,
           deleteModule: this.deleteModule,
           hasDependency: this.hasDependency,
-          updateStep: this.updateStep
+          updateStep: this.updateStep,
         }}
       >
         <div className="model" style={{ maxWidth: 2000 }}>
@@ -327,7 +327,7 @@ class Model extends React.Component {
 
                     {type === "computed" && (
                       <ComputedModule
-                        setChanged={() => this.setChanged()}
+                        setChanged={this.setChanged}
                         stepIndex={index}
                         step={steps && steps[index]}
                       />
@@ -370,8 +370,14 @@ class Model extends React.Component {
             >
               {getFieldDecorator("name", {
                 initialValue: name,
-                rules: [{ required: true, message: "Name is required" }]
-              })(<Input onChange={() => this.setChanged()}/>)}
+                rules: [{ required: true, message: "Name is required" }],
+              })(
+                <Input
+                  onChange={() => {
+                    if (selectedId) this.setChanged(true);
+                  }}
+                />
+              )}
             </Form.Item>
 
             <Form.Item
@@ -389,8 +395,14 @@ class Model extends React.Component {
               }
             >
               {getFieldDecorator("description", {
-                initialValue: description
-              })(<Input.TextArea onChange={() => this.setChanged()}/>)}
+                initialValue: description,
+              })(
+                <Input.TextArea
+                  onChange={() => {
+                    if (selectedId) this.setChanged(true);
+                  }}
+                />
+              )}
             </Form.Item>
 
             <Form.Item
@@ -408,10 +420,15 @@ class Model extends React.Component {
               }
             >
               {getFieldDecorator("groupBy", {
-                initialValue: groupBy
+                initialValue: groupBy,
               })(
-                <Select allowClear onChange={() => this.setChanged()}>
-                  {this.labelsUsed().map(label => (
+                <Select
+                  allowClear
+                  onChange={() => {
+                    if (selectedId) this.setChanged(true);
+                  }}
+                >
+                  {this.labelsUsed().map((label) => (
                     <Select.Option value={label} key={label}>
                       {label}
                     </Select.Option>
@@ -423,15 +440,27 @@ class Model extends React.Component {
             <Form.Item {...formItemLayout} label="Allow access via user email">
               {getFieldDecorator("emailAccess", {
                 initialValue: emailAccess || false,
-                valuePropName: "checked"
-              })(<Checkbox onChange={() => this.setChanged()}/>)}
+                valuePropName: "checked",
+              })(
+                <Checkbox
+                  onChange={() => {
+                    if (selectedId) this.setChanged(true);
+                  }}
+                />
+              )}
             </Form.Item>
 
             <Form.Item {...formItemLayout} label="Allow access via LTI">
               {getFieldDecorator("ltiAccess", {
                 initialValue: ltiAccess || false,
-                valuePropName: "checked"
-              })(<Checkbox onChange={() => this.setChanged()}/>)}
+                valuePropName: "checked",
+              })(
+                <Checkbox
+                  onChange={() => {
+                    if (selectedId) this.setChanged(true);
+                  }}
+                />
+              )}
             </Form.Item>
 
             {(getFieldValue("emailAccess") || getFieldValue("ltiAccess")) && (
@@ -458,13 +487,13 @@ class Model extends React.Component {
                       {
                         required: true,
                         message:
-                          "Permission matching field is required if access is allowed via LTI or user email"
-                      }
+                          "Permission matching field is required if access is allowed via LTI or user email",
+                      },
                     ],
-                    initialValue: permission
+                    initialValue: permission,
                   })(
                     <Select>
-                      {this.labelsUsed().map(label => (
+                      {this.labelsUsed().map((label) => (
                         <Select.Option value={label} key={label}>
                           {label}
                         </Select.Option>
@@ -478,10 +507,10 @@ class Model extends React.Component {
                     rules: [
                       {
                         required: true,
-                        message: "Restriction type is required"
-                      }
+                        message: "Restriction type is required",
+                      },
                     ],
-                    initialValue: restriction || "private"
+                    initialValue: restriction || "private",
                   })(
                     <Select>
                       <Select.Option value="private">
