@@ -104,6 +104,7 @@ class Email(EmbeddedDocument):
     track_count = IntField(default=0)
     first_tracked = DateTimeField()
     last_tracked = DateTimeField()
+    link_clicks = DictField()
 
 
 class EmailJob(EmbeddedDocument):
@@ -336,7 +337,7 @@ class Workflow(Document):
             html = strip_tags(html, "condition")
             html = strip_tags(html, "rule")
             html = parse_attribute(html, item, order, forms)
-            html = parse_link(html, item, order)
+            # html = parse_link(html, item, order, self.id, job_id)
 
             result.append(html)
         return result

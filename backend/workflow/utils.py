@@ -65,15 +65,30 @@ def did_pass_test(test, value, param_type):
     except:
         return False
 
-def replace_link(match, item, order):
+def replace_link(match, item, order, action_id, job_id, email_id):
     """Generates new HTML replacement string for attribute with the attribute value and mark styles"""
     [href, param, field, label] = [match.group(1), match.group(2), match.group(3), match.group(5)]
     if param and field:
         href += f'?{param}={item.get(field)}'
 
-    return f'<a href="{href}">{label}</a>'
+    print("**************************PARAMS HERE************************************")
+    print(param)
+    print("**************************PARAMS HERE************************************")
+    tracking_token = jwt.encode(
+        {
+            "action_id": str(action_id),
+            "job_id": str(job_id),
+            "email_id": str(email_id),
+            "href": str(href)
+        },
+        SECRET_KEY,
+        algorithm="HS256",
+    ).decode("utf-8")
+    tracking_link = f"{BACKEND_DOMAIN}/workflow/link_click/?token={tracking_token}"
+ 
+    return f'<a href="{tracking_link}">{label}</a>'
 
-def parse_link(html, item, order):
+def parse_link(html, item, order, action_id, job_id, email_id):
     """
     Parse <hyperlink> ... </hyperlink> in html string based on student.
     Only checks for
@@ -81,7 +96,7 @@ def parse_link(html, item, order):
     """
     return re.sub(
         r"<hyperlink href=\"(.*?)\" param=\"(.*?)\" field=\"(.*?)\">((?:<(?:strong|em|u|pre|code|span.*?)>)*)(.*?)((?:</(?:strong|em|u|pre|code|span)>)*)</hyperlink>",
-        lambda match: replace_link(match, item, order),
+        lambda match: replace_link(match, item, order, action_id, job_id, email_id),
         html
     )
 

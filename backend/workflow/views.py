@@ -314,6 +314,40 @@ class WorkflowViewSet(viewsets.ModelViewSet):
 
         return HttpResponse(PIXEL_GIF_DATA, content_type="image/gif")
 
+    @list_route(methods=["get"], permission_classes=[AllowAny])
+    def link_click(self, request):
+        token = request.GET.get("token")
+        decrypted_token = None
+
+        if token:
+            try:
+                decrypted_token = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+            except Exception:
+                # Invalid token, ignore the read receipt
+                return HttpResponse()
+
+            action = Workflow.objects.get(id=decrypted_token["action_id"])
+
+            did_update = False
+            for job in action.emailJobs:
+                if str(job.job_id) == decrypted_token["job_id"]:
+                    for email in job.emails:
+                        if email.email_id == decrypted_token["email_id"]:
+                            # email.first_tracked = datetime.utcnow()
+                            links = email.link_clicks
+                            if decrypted_token["href"] in links:
+                                links[decrypted_token["href"]] += 1
+                            else:
+                                links[decrypted_token["href"]] = 1
+                            did_update = True
+                            break
+                    break
+
+            if did_update:
+                action.save()
+
+        return HttpResponse()
+    
     @detail_route(methods=["post"])
     def clone_action(self, request, id=None):
         action = self.get_object()

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-import { Popover, Tooltip, Popconfirm, Input, Select, Row, Col } from "antd";
+import { Popover, Tooltip, Popconfirm, Input, Select, Row, Col, Button } from "antd";
 
 function Link(options) {
   return {
@@ -85,6 +85,76 @@ function Link(options) {
 
 export const LinkButton = ({ editor, order }) => {
   const [hyperlink, setHyperlink] = useState({ label: null, url: null });
+  const [parameters, setParameters] = useState([]);
+  
+  const addParameter = () => {
+    let existingParameters = [...parameters];
+    existingParameters.push({
+      paramName: '',
+      paramValue: '',
+    })
+    setParameters(existingParameters);
+  }
+
+  const editParameter = (index, field, value) => {
+    let existingParameters = [...parameters];
+    existingParameters[index][field] = value;
+    setParameters(existingParameters);
+  }
+
+  const removeParameter = (index) => {
+    let existingParameters = [...parameters];
+    existingParameters.splice(index, 1);
+    setParameters(existingParameters);
+  }
+
+  const renderParameters = () => {
+    return parameters.map((parameter, i) => {
+      return (
+        <Row style={{ display: "flex" }} gutter={8} key={i}>
+          <Col xs={10}>
+            <Input
+              style={{ width: "100%" }}
+              placeholder="Parameter"
+              size="small"
+              onChange={e =>
+                // setHyperlink({ ...hyperlink, paramName: e.target.value })
+                editParameter(i, 'paramName', e.target.value)
+              }
+              value={parameter.paramName}
+            />
+          </Col>
+
+          <Col xs={12}>
+            <Select
+              placeholder="Field"
+              style={{ width: "100%" }}
+              size="small"
+              value={parameter.paramValue}
+              onChange={paramValue =>
+                // setHyperlink({ ...hyperlink, paramValue })
+                editParameter(i, 'paramValue', paramValue)
+              }
+            >
+              {order.map(field => {
+                return (
+                  <Select.Option value={field} key={field}>
+                    {field}
+                  </Select.Option>
+                );
+              })}
+            </Select>
+            
+          </Col>
+          <Col xs={2}>
+            <Button onClick={() => removeParameter(i)}>
+              Remove
+            </Button>
+          </Col>
+        </Row>
+      )
+    })
+  }
 
   return (
     <Popconfirm
@@ -106,8 +176,14 @@ export const LinkButton = ({ editor, order }) => {
             value={hyperlink.url}
           />
           URL parameter (optional):
-          <Row style={{ display: "flex" }} gutter={8}>
-            <Col xs={12}>
+          <Row style={{ display: "flex" }} gutter={8}
+            onClick={() => addParameter()}
+          >
+            <Button>
+              Add Parameter
+            </Button>
+          </Row>
+            {/* <Col xs={12}>
               <Input
                 style={{ width: "100%" }}
                 placeholder="Parameter"
@@ -137,8 +213,8 @@ export const LinkButton = ({ editor, order }) => {
                   );
                 })}
               </Select>
-            </Col>
-          </Row>
+            </Col> */}
+            {renderParameters()}
         </div>
       }
       onVisibleChange={visible => {

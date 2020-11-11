@@ -57,6 +57,17 @@ class EmailJobDetails extends React.Component {
     </div>
   );
 
+  LinkDetails = (record) => {
+    const rows = Object.keys(record).map(key => 
+      <b key={key}>{key} - {record[key]}</b>
+    )
+    return (
+      <div>
+        {rows}
+      </div>
+    )
+  }
+
   onCancel = () => this.setState({ emailView: { visible: false } });
 
   TrackingDetails = (record) => (
@@ -141,6 +152,27 @@ class EmailJobDetails extends React.Component {
                 ) : (
                   <Icon type="close" />
                 ),
+            },
+            {
+              title: "Link Clicks",
+              render: (text, record) => {
+                let clicks = 0;
+                if (record.link_clicks) {
+                  Object.keys(record.link_clicks).forEach((key => {
+                    clicks += record.link_clicks[key];
+                  }))
+                }
+                return (
+                  clicks > 0 ? (
+                    <Popover
+                      content={this.LinkDetails(record.link_clicks)}
+                      trigger={"hover"}
+                    >
+                      {clicks}
+                    </Popover>
+                  ) : (<span>0</span>)
+                )
+              }
             },
             {
               title: "Content",
