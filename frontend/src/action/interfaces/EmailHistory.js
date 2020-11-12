@@ -151,7 +151,7 @@ class EmailHistory extends React.Component {
           dataSource={action.emailJobs}
           expandedRowRender={this.EmailJobDetails}
           rowKey="job_id"
-          pagination={{ size: "small", pageSize: 5 }}
+          pagination={{ size: "small", pageSize: 20 }}
         />
       </div>
     );

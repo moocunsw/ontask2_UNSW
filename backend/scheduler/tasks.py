@@ -19,6 +19,7 @@ from administration.models import Dump
 from datalab.models import Datalab
 
 from .utils import create_crontab, send_email, should_run
+from workflow.utils import parse_link
 
 from ontask.settings import (
     SECRET_KEY,
@@ -94,14 +95,13 @@ def dump_datalab_data(**kwargs):
 @should_run
 def workflow_send_email(action_id=None, job_type="Scheduled", **kwargs):
     """ Send email based on the schedule in workflow model """
-    logger.info("email.initiate", extra={
-                "action": action_id, "job_type": job_type})
+    # logger.info("email.initiate", extra={
+    #             "action": action_id, "job_type": job_type})
 
     from workflow.models import Workflow, EmailJob, Email
-
     action = Workflow.objects.get(id=ObjectId(action_id))
 
-    populated_content = action.populate_content()
+    populated_content = action.populate_content(email=True)
     email_settings = action.emailSettings
 
     job_id = ObjectId()
@@ -153,9 +153,10 @@ def workflow_send_email(action_id=None, job_type="Scheduled", **kwargs):
                 if recipient == "" or recipient is None:
                     null_recipients += 1
                 else:
-                    email_content = populated_content[recipient_count]
-
+                    # email_content = populated_content[recipient_count]
+                    # print('email content here***************************************************', email_content)
                     email_id = uuid.uuid4().hex
+                    email_content = parse_link(populated_content[recipient_count], action.data['records'][recipient_count], recipient_count, action.id, job_id, email_id)
                     tracking_token = jwt.encode(
                         {
                             "action_id": str(action.id),
@@ -178,7 +179,18 @@ def workflow_send_email(action_id=None, job_type="Scheduled", **kwargs):
                         )
 
                     if os.environ.get("ONTASK_DEVELOPMENT"):
+                        print("********* EMAIL CONTENT *************************")
+                        print(email_content)
+                        print("********* EMAIL CONTENT *************************")
                         email_sent = True
+                        # email_sent = send_email(
+                        #     recipient,
+                        #     email_settings.subject,
+                        #     email_content,
+                        #     from_name=email_settings.fromName,
+                        #     reply_to=email_settings.replyTo,
+                        #     connection=connection,
+                        # )
                     else:
                         email_sent = send_email(
                             recipient,
@@ -221,7 +233,6 @@ def workflow_send_email(action_id=None, job_type="Scheduled", **kwargs):
                     "totalEmails": len(email_batches),
                 }
                 action.save()
-                print('here', action.currentEmailJob)
                 recipient_count += 1
 
             if batch_index + 1 != len(email_batches) and batch_pause > 0:

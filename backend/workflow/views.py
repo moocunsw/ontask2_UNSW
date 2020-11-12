@@ -4,7 +4,7 @@ from rest_framework_mongoengine.validators import ValidationError
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 from mongoengine.queryset.visitor import Q
 
@@ -314,6 +314,42 @@ class WorkflowViewSet(viewsets.ModelViewSet):
 
         return HttpResponse(PIXEL_GIF_DATA, content_type="image/gif")
 
+    @list_route(methods=["get"], permission_classes=[AllowAny])
+    def link_click(self, request):
+        token = request.GET.get("token")
+        decrypted_token = None
+
+        if token:
+            try:
+                decrypted_token = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+            except Exception:
+                # Invalid token, ignore the read receipt
+                return HttpResponse()
+
+            action = Workflow.objects.get(id=decrypted_token["action_id"])
+            print("decrypted token: ", decrypted_token)
+            did_update = False
+            for job in action.emailJobs:
+                if str(job.job_id) == decrypted_token["job_id"]:
+                    for email in job.emails:
+                        if email.email_id == decrypted_token["email_id"]:
+                            baseURL = decrypted_token["href"].split('?')
+                            print('BASE URL: ', baseURL)
+                            # email.first_tracked = datetime.utcnow()
+                            links = email.link_clicks
+                            if baseURL[0] in links:
+                                links[str(baseURL[0].replace('.', '(dot)'))] += 1
+                            else:
+                                links[str(baseURL[0].replace('.', '(dot)'))] = 1
+                            did_update = True
+                            break
+                    break
+
+            if did_update:
+                action.save()
+
+        return HttpResponseRedirect(decrypted_token["href"])
+    
     @detail_route(methods=["post"])
     def clone_action(self, request, id=None):
         action = self.get_object()
