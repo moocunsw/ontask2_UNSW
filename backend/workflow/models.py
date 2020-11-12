@@ -27,6 +27,7 @@ from .utils import (
     did_pass_test,
     parse_attribute,
     parse_link,
+    simple_parse_link,
     generate_condition_tag_locations,
     replace_tags,
     strip_tags,
@@ -272,7 +273,10 @@ class Workflow(Document):
             "filteredLength": len(filtered_data),
         }
 
-    def populate_content(self, content=None):
+    # email is a field so it populates content depending on when the function is used (normally vs before sending an email).
+    # this is important for parsing links, as normally we don't need to generate a complex tracking link, where we do have to do that in an email.
+
+    def populate_content(self, content=None, email=False):
         if not content and not self.content:
             return []
         elif not content:
@@ -338,6 +342,9 @@ class Workflow(Document):
             html = strip_tags(html, "rule")
             html = parse_attribute(html, item, order, forms)
             # html = parse_link(html, item, order, self.id, job_id)
+            if email is False:
+                # normal case: parse the link to a simple <a> </a>
+                html = simple_parse_link(html, item, order)
 
             result.append(html)
         return result

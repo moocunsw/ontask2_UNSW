@@ -101,7 +101,7 @@ def workflow_send_email(action_id=None, job_type="Scheduled", **kwargs):
     from workflow.models import Workflow, EmailJob, Email
     action = Workflow.objects.get(id=ObjectId(action_id))
 
-    populated_content = action.populate_content()
+    populated_content = action.populate_content(email=True)
     email_settings = action.emailSettings
 
     job_id = ObjectId()
@@ -156,7 +156,7 @@ def workflow_send_email(action_id=None, job_type="Scheduled", **kwargs):
                     # email_content = populated_content[recipient_count]
                     # print('email content here***************************************************', email_content)
                     email_id = uuid.uuid4().hex
-                    email_content = parse_link(populated_content[recipient_count], recipient_count, None, action.id, job_id, email_id)
+                    email_content = parse_link(populated_content[recipient_count], action.data['records'][recipient_count], recipient_count, action.id, job_id, email_id)
                     tracking_token = jwt.encode(
                         {
                             "action_id": str(action.id),

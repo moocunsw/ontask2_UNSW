@@ -51,12 +51,27 @@ const rules = [
           case "list-item":
             return <li>{children}</li>;
           case "hyperlink":
-            return (
-              // The below is a hack to ensure param & field attributes are in the DOM element, even if paramName or paramValue are null
-              <hyperlink href={obj.data.get("href")} param={obj.data.get("paramName") || ""} field={obj.data.get("paramValue") || ""}>
-                {children}
-              </hyperlink>
-            );
+            const params = obj.data.get("params");
+            if (obj.data.get("paramName") && obj.data.get("paramValue")) {
+              return (
+                // The below is a hack to ensure param & field attributes are in the DOM element, even if paramName or paramValue are null
+                <hyperlink href={obj.data.get("href")} param={obj.data.get("paramName") || ""} field={obj.data.get("paramValue") || ""}>
+                  {children}
+                </hyperlink>
+              );
+            } else if (params) {
+              let paramString = "";
+              params.forEach(param => {
+                paramString = paramString.concat(`?${param.paramName}=${param.paramValue}`);
+              })
+              return (
+                // The below is a hack to ensure param & field attributes are in the DOM element, even if paramName or paramValue are null
+                <hyperlink href={obj.data.get("href")} params={paramString}>
+                  {children}
+                </hyperlink>
+              );
+            }
+          
           // The below "link" is retained for backwards compatability only
           case "link":
             return (
