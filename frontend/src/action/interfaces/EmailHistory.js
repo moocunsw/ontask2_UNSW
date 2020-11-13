@@ -78,6 +78,11 @@ class EmailHistory extends React.Component {
           reply_to_email: action.emailSettings.replyTo,
           reply_to_name: action.emailSettings.fromName,
         }
+        if (email.link_clicks) {
+          Object.keys(email.link_clicks).forEach(key => {
+            object[`link_${key}`] = email.link_clicks[key]
+          })
+        }
         rows.push(object)
       }
     }
