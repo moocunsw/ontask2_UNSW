@@ -374,6 +374,41 @@ class WorkflowViewSet(viewsets.ModelViewSet):
 
         return Response(status=HTTP_200_OK)
 
+    # different as it copies to a different container.
+    @detail_route(methods=["post"])
+    def copy_action(self, request, id=None):
+        action = self.get_object()
+        self.check_object_permissions(self.request, action)
+
+        data = request.data
+
+        action = action.to_mongo().to_dict()
+
+        action.pop("_id")
+        action.pop("schedule")
+        action.pop("linkId")
+        action.pop("emailJobs")
+        action.pop("datalab")
+
+        action["container"] = data["containerId"]
+        action["name"] = data["name"]
+        action["datalab"] = data["datalabId"]
+        # action["emailSettings"]["field"] = ""
+
+        # action.container = data["containerId"]
+        # action.datalab = data["datalabId"]
+        # action.emailSettings["field"] = ""
+
+        serializer = ActionSerializer(data=action)
+        serializer.is_valid()
+        serializer.save()
+
+        logger.info(
+            "action.clone", extra={"user": self.request.user.email, "action": str(id)}
+        )
+
+        return Response(serializer.data)
+
     @detail_route(methods=["post"])
     def unlock_action(self, request, id=None):
         try:

@@ -9,7 +9,8 @@ import Compose from "./interfaces/Compose";
 import Email from "./interfaces/Email";
 import Feedback from "./interfaces/Feedback";
 import Settings from "./interfaces/ActionSettings";
-import EmailHistory from './interfaces/EmailHistory'
+import EmailHistory from './interfaces/EmailHistory';
+import CopyAction from './interfaces/CopyAction';
 // import StaticPage from "./interfaces/StaticPage";
 
 import apiRequest from "../shared/apiRequest";
@@ -118,6 +119,13 @@ class Action extends React.Component {
                         </Link>
                       </Menu.Item>
 
+                      <Menu.Item key="copy_action">
+                        <Link to={`${match.url}/copy_action`}>
+                          <Icon type="copy" />
+                          <span>Copy Action</span>
+                        </Link>
+                      </Menu.Item>
+
                       <Menu.Item key="static" disabled>
                         <Link to={`${match.url}/static`}>
                           <Icon type="link" />
@@ -186,6 +194,16 @@ class Action extends React.Component {
                                   {...props}
                                   action={action}
                                   updateAction={this.updateAction}
+                                />
+                              )}
+                            />
+                            <Route
+                              path={`${match.url}/copy_action`}
+                              render={props => (
+                                <CopyAction
+                                  {...props}
+                                  action={action}
+                                  // updateAction={this.updateAction}
                                 />
                               )}
                             />

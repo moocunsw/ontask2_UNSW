@@ -147,6 +147,16 @@ class ActionTab extends React.Component {
                 />
               </Tooltip>
 
+              <Tooltip title="Clone action to another container">
+                <Button
+                  style={{ margin: 3 }}
+                  icon="export"
+                  onClick={() => {
+                    history.push(`/action/${action.id}/clone_action`)
+                  }}
+                />
+              </Tooltip>
+
               <Tooltip title="Delete action">
                 <Button
                   style={{ margin: 3 }}
