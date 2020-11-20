@@ -3,7 +3,8 @@ from dateutil import parser
 import time
 from collections import defaultdict
 from datetime import datetime, timedelta
-
+from datasource.models import Datasource
+from datalab.models import Datalab
 import jwt
 
 from ontask.settings import (
@@ -333,3 +334,129 @@ def strip_tags(html, old):
     """
     tagPattern = r"(<\s*\/?\s*)" + old + r"(\s*([^>]*)?\s*>)"
     return re.sub(tagPattern, "", html)
+
+def copy_action_set_options(datalabId):
+    modules = []
+    types = {}
+    labels = []
+    # print(self.datalab.steps)
+    # Create a "pseudo" module to hold the computed fields
+    computed = {"type": "computed", "fields": []}
+
+    datalab = Datalab.objects.get(id=datalabId)
+    
+    # set options
+    for step in datalab.steps:
+        module = {"type": step.type, "fields": []}
+        module_labels = {}
+
+        if step.type == "datasource":
+            datasource = None
+            try:
+                datasource = Datasource.objects.get(id=step.datasource.id)
+            except:
+                pass
+
+            try:
+                datasource = Datalab.objects.get(id=step.datasource.id)
+            except:
+                pass
+            if datasource:
+
+                # try:
+                module["name"] = datasource.name
+                for field in step.datasource.fields:
+                    label = step.datasource.labels[field]
+                    module["fields"].append(label)
+                    # sometimes not happy with the below line.
+                    # if "datasource" in step:
+                    #     print("datasource in step")
+                    # else:
+                    #     print("not in step!")
+                    #     for key in step:
+                    #         print(key, step[key])
+                    if (field in step.datasource.types):
+                        types[label] = step.datasource.types[field]
+                    # else:
+                        # print("field not in types?")
+                        # print("field: ", field)
+                    module_labels[field] = label
+                modules.append(module)
+
+                labels.append(module_labels)
+
+                # except Exception as e:
+                    # print("error has occured")
+                    # print(e, e.args)
+
+        if step.type == "form":
+            form = Form.objects.get(id=step.form)
+            module["name"] = form.name
+            for field in form.fields:
+                if field.type == "checkbox-group":
+                    for column in field.columns:
+                        module["fields"].append(column)
+                        types[column] = "checkbox"
+                        module_labels[column] = column
+                else:
+                    module["fields"].append(field.name)
+                    types[field.name] = field.type
+                    module_labels[field.name] = field.name
+            modules.append(module)
+            labels.append(module_labels)
+
+        if step.type == "computed":
+            for field in step.computed.fields:
+                computed["fields"].append(field.name)
+                types[field.name] = field.type
+                module_labels[field.name] = field.name
+                labels.append(module_labels)
+    
+    modules.append(computed)
+
+    return {"modules": modules, "types": types, "labels": labels}
+
+# def copy_action_set_data(options,):
+#     options = self.options
+
+#         if self.filter:
+#             filtered_data = []
+
+#             types = options["types"]
+#             parameters = self.filter.parameters
+#             condition = self.filter.conditions[0]
+
+#             for item in self.datalab.data:
+#                 if all(
+#                     [
+#                         did_pass_test(
+#                             condition.formulas[parameter_index],
+#                             item.get(parameter),
+#                             types.get(parameter),
+#                         )
+#                         for parameter_index, parameter in enumerate(parameters)
+#                     ]
+#                 ):
+#                     filtered_data.append(item)
+
+#         else:
+#             filtered_data = self.datalab.data
+
+#         column_order = []
+#         from datalab.serializers import OrderItemSerializer
+#         order = OrderItemSerializer(
+#             self.datalab.order, many=True, context={"steps": self.datalab.steps}
+#         ).data
+
+#         for item in order:
+#             if item["details"]["field_type"] == "checkbox-group":
+#                 column_order.extend(item["details"]["fields"])
+#             else:
+#                 column_order.append(item["details"]["label"])
+
+#         return {
+#             "records": filtered_data,
+#             "order": column_order,
+#             "unfilteredLength": len(self.datalab.data),
+#             "filteredLength": len(filtered_data),
+#         }

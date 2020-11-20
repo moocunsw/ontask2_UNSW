@@ -29,7 +29,8 @@ class CopyAction extends React.Component {
     terms: [],
     currentTerms: [],
     currentContainer: [],
-    originalActionFields: [],
+    fields: [],
+    newAction: null,
   };
 
   fetchContainers = () => {
@@ -79,24 +80,29 @@ class CopyAction extends React.Component {
   };
 
   copyAction = () => {
-    const { action } = this.props
+    const { action } = this.props;
     apiRequest(`/workflow/${action.id}/copy_action/`, {
       method: "POST",
-      payload: { 
+      payload: {
         containerId: this.state.currentContainer[0],
         datalabId: this.state.selected.id,
         name: this.state.newActionName,
       },
       onSuccess: (newAction) => {
-        console.log(newAction)
+        this.setState({ newAction: newAction }, () => {
+          console.log(newAction);
+          notification["success"]({
+            message: "Action has been created. Fix the content fields if any!",
+          });
+        });
       },
       onError: () => {
         notification["error"]({
-          message: "Could not copy action"
-        })
-      }
-    })
-  }
+          message: "Could not copy action",
+        });
+      },
+    });
+  };
 
   fetchDatalab = (datalabId) => {
     this.setState({ loadingDatalab: true });
@@ -214,6 +220,99 @@ class CopyAction extends React.Component {
     }
   };
 
+  updateContent = () => {
+    const { fields, newAction } = this.state;
+    let content = newAction.content
+    fields.forEach((field) => {
+      content = content.replace(field.field, `field:${field.matching_field}`)
+    })
+
+    apiRequest(`/workflow/${newAction.id}/content/`, {
+      method: "PUT",
+      payload: { content: { html: content }},
+      onSuccess: action => {
+        notification["success"]({
+          message: "Content successfully updated."
+        });
+      },
+      onError: error => {
+        notification["error"]({
+          message: "Content could not update"
+        })
+      }
+    });
+  }
+
+  onChangeMatchingField = (record, newMatch) => {
+    const fields = [...this.state.fields]
+    const index = fields.findIndex((field) => field.field === record.field);
+    fields[index].matching_field = newMatch;
+    this.setState({ fields })
+  };
+
+  fieldsTable = () => {
+    const { fields, newAction } = this.state;
+
+    let options;
+    if (newAction) {
+      if (newAction.data.order) {
+        options = newAction.data.order.map((value) => {
+          return (
+            <Select.Option value={value} key={value}>
+              {value}
+            </Select.Option>
+          );
+        });
+      }
+    }
+
+    const columns = [
+      {
+        title: "Field",
+        dataIndex: "field",
+        key: "field",
+        render: (text, record) => {
+          console.log(record);
+          return <span>{text}</span>;
+        },
+      },
+      {
+        title: "Matching Field",
+        dataIndex: "matching_field",
+        key: "matching_field",
+        render: (text, record) => {
+          return (
+            <span style={{flex: 1, display: 'flex'}}>
+              <Select
+                style={{ flex: 1 }}
+                value={record.matching_field}
+                onChange={(value) => {
+                  this.onChangeMatchingField(record, value);
+                }}
+              >
+                {options}
+              </Select>
+            </span>
+          );
+        },
+      },
+    ];
+
+    return (
+      <Table
+        columns={columns}
+        dataSource={fields}
+        rowKey={(record, i) => i}
+        pagination={{
+          size: "small",
+          defaultPageSize: 10,
+          showSizeChanger: true,
+          pageSizeOptions: ["10", "25", "50"],
+        }}
+      />
+    );
+  };
+
   getFields = () => {
     const { action } = this.props;
     if (action.content) {
@@ -223,16 +322,25 @@ class CopyAction extends React.Component {
         fields = [];
       while ((matches = regex.exec(action.content))) {
         console.log(matches);
-        let splitField = matches[0].split(":");
-        fields.push(splitField[1]);
+        // let splitField = matches[0].split(":");
+        fields.push({
+          field: matches,
+          matching_field: null,
+        });
       }
-      this.setState({ originalActionFields: fields });
+      this.setState({ fields: fields });
     }
   };
 
   render() {
     const { action } = this.props;
-    const { currentTerms, loadingContainer, currentContainer, selected } = this.state;
+    const {
+      currentTerms,
+      loadingContainer,
+      currentContainer,
+      selected,
+      newAction,
+    } = this.state;
     console.log(this.state);
     console.log(this.props);
 
@@ -241,7 +349,10 @@ class CopyAction extends React.Component {
         <Row style={{ padding: 20 }}>
           <Col span={6}>New Action Name:</Col>
           <Col span={18} style={{ display: "flex", flex: 1 }}>
-            <Input value={this.state.newActionName} onChange={(e) => this.setState({newActionName: e.target.value})} />
+            <Input
+              value={this.state.newActionName}
+              onChange={(e) => this.setState({ newActionName: e.target.value })}
+            />
           </Col>
         </Row>
 
@@ -270,8 +381,6 @@ class CopyAction extends React.Component {
           </Row>
         ) : null}
 
-        
-
         {selected ? (
           <div>
             <Button
@@ -284,7 +393,14 @@ class CopyAction extends React.Component {
           </div>
         ) : null}
 
-        <div></div>
+        {newAction && newAction.content ? (
+          <div>
+            {this.fieldsTable()}
+            <Button onClick={() => this.updateContent()}>
+              Update Fields
+            </Button>
+          </div>
+        ) : null}
       </div>
     );
   }

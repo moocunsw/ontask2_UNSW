@@ -152,7 +152,7 @@ class ActionTab extends React.Component {
                   style={{ margin: 3 }}
                   icon="export"
                   onClick={() => {
-                    history.push(`/action/${action.id}/clone_action`)
+                    history.push(`/action/${action.id}/copy_action`)
                   }}
                 />
               </Tooltip>

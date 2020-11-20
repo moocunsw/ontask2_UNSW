@@ -23,6 +23,8 @@ from container.models import Container
 
 from scheduler.utils import create_task, delete_task
 
+from .utils import copy_action_set_options
+
 from ontask.settings import SECRET_KEY, BACKEND_DOMAIN
 
 import logging
@@ -398,9 +400,17 @@ class WorkflowViewSet(viewsets.ModelViewSet):
         # action.container = data["containerId"]
         # action.datalab = data["datalabId"]
         # action.emailSettings["field"] = ""
+        
+        if "options" in action: 
+            action.pop("options")
+        # action["options"] = copy_action_set_options(data["datalabId"])
+        
+        if "data" in action:
+            action.pop("data")
 
         serializer = ActionSerializer(data=action)
         serializer.is_valid()
+        # print(serializer.is_valid())
         serializer.save()
 
         logger.info(
@@ -408,6 +418,11 @@ class WorkflowViewSet(viewsets.ModelViewSet):
         )
 
         return Response(serializer.data)
+        # return Response()
+
+    @detail_route(methods=["post"])
+    def replace_content(self, request, id=None):
+        return Response()
 
     @detail_route(methods=["post"])
     def unlock_action(self, request, id=None):
